@@ -19,6 +19,7 @@ export function createEnemy(id: number, kind: EnemyKind, wave: number): Enemy {
   const hp = Math.round(def.hp * hpMultiplier(wave));
   return {
     id,
+    wave,
     kind,
     hp,
     maxHp: hp,
