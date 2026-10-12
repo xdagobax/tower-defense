@@ -69,3 +69,21 @@ Después, comprobar manualmente:
 - Afecta tanto al inicio de una partida nueva como a `restart()`, que reutiliza la constante.
 - Intención: permitir una tercera torreta Flecha desde la primera oleada y reducir la frustración inicial sin modificar todavía los enemigos ni sus estadísticas.
 - Pendiente: probar la primera oleada con distintas colocaciones y comprobar si el aumento basta antes de tocar más parámetros.
+
+
+## Oleadas empalmadas y llamada anticipada — 2026-10-12
+
+**Referencias de diseño:** `Kingdom Rush` permite llamar la siguiente oleada antes de que termine la espera y recompensa el tiempo adelantado; `Tower Defense Simulator` combina pausas, saltos de oleada y recompensas de oleada. La implementación de este proyecto adapta el principio a su sistema de oleadas sin temporizador automático.
+
+Archivos: `src/game.ts`, `src/state.ts`, `src/systems/spawn.ts`, `src/render/hud.ts` e `index.html`.
+
+- Cuando hayan aparecido todos los enemigos de la oleada actual, el botón permite llamar a la siguiente aunque todavía queden enemigos vivos. Así se pueden empalmar oleadas.
+- Se abre una ventana de **12 segundos** al terminar la aparición de enemigos. Llamar la siguiente oleada dentro de esa ventana otorga **1 oro por segundo restante** (hasta 12 de oro). Después de la ventana todavía se puede llamar la siguiente oleada, pero sin el bono.
+- Si la oleada termina antes de que se llame la siguiente, el bono sigue disponible durante la ventana en la fase de construcción.
+- Cada enemigo guarda el número de oleada al que pertenece. Esto permite pagar el bono normal de finalización cuando se eliminen los enemigos de cada oleada, incluso si varias oleadas están activas al mismo tiempo.
+- La llamada anticipada es una decisión estratégica: aumenta la presión de enemigos simultáneos a cambio de oro adicional. El botón muestra el bono y los segundos restantes.
+- El primer inicio de la partida no da bono anticipado.
+
+### Validación pendiente
+
+No se han ejecutado todavía las pruebas en un entorno local. Ejecutar `npm test`, `npm run typecheck` y `npm run build`. Probar especialmente oleadas empalmadas, pago separado de recompensas y el fin de la ventana de 12 segundos.
