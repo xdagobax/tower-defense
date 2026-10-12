@@ -18,7 +18,6 @@ export function findTarget(tower: Tower, stats: TowerStats, enemies: Enemy[]): E
   const origin = towerPosition(tower);
   const rangeSq = stats.range * stats.range;
   let best: Enemy | null = null;
-  let bestProgress = -1;
 
   for (const enemy of enemies) {
     if (!isTargetable(enemy)) continue;
@@ -26,8 +25,16 @@ export function findTarget(tower: Tower, stats: TowerStats, enemies: Enemy[]): E
     const dx = pos.x - origin.x;
     const dy = pos.y - origin.y;
     if (dx * dx + dy * dy > rangeSq) continue;
-    if (enemy.distance > bestProgress) {
-      bestProgress = enemy.distance;
+
+    if (tower.kind === "sniper") {
+      if (
+        best === null ||
+        enemy.hp > best.hp ||
+        (enemy.hp === best.hp && enemy.distance > best.distance)
+      ) {
+        best = enemy;
+      }
+    } else if (best === null || enemy.distance > best.distance) {
       best = enemy;
     }
   }
