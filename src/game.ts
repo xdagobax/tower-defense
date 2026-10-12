@@ -22,7 +22,7 @@ import { buildSpawnQueue, createEnemy } from "./systems/spawn";
 import { enemyPosition, findTarget, isTargetable, towerPosition } from "./systems/targeting";
 
 export const VICTORY_WAVE = 20;
-const STARTING_GOLD = 100;
+const STARTING_GOLD = 150;
 const STARTING_LIVES = 20;
 const TESLA_CHAIN_RANGE = 90;
 
