@@ -47,6 +47,9 @@ export class Hud {
   private readonly towerList = must("tower-list");
 
   private readonly towerButtons = new Map<TowerKind, HTMLButtonElement>();
+  // Keep action buttons mounted between frames; recreating them every frame
+  // prevents the browser from completing a normal click reliably.
+  private renderedSelectionKey = "";
 
   constructor(
     private readonly game: Game,
@@ -105,39 +108,58 @@ export class Hud {
   private updateSelection(): void {
     const state = this.game.state;
     const tower = this.game.towers.find((t) => t.id === state.selectedTowerId);
+
     if (!tower) {
-      this.selection.innerHTML = `<div class="label">Sin selección</div>`;
+      if (this.renderedSelectionKey !== "none") {
+        this.selection.innerHTML = `<div class="label">Sin selección</div>`;
+        this.renderedSelectionKey = "none";
+      }
       return;
     }
+
     const def = TOWERS[tower.kind];
     const stats = def.levels[tower.level - 1];
     const nextCost = upgradeCost(tower.kind, tower.level);
     const sold = sellValue(tower.invested);
+    const selectionKey = `${tower.id}:${tower.level}:${tower.invested}`;
 
-    const upgradeLine =
-      tower.level >= MAX_TOWER_LEVEL
-        ? "Nivel máximo"
-        : `Mejora: ${nextCost} oro`;
+    // Rebuild only when the selected tower or its level changes, not on every
+    // animation frame. Otherwise the upgrade button is continuously detached
+    // before its click event can be dispatched.
+    if (this.renderedSelectionKey !== selectionKey) {
+      const upgradeLine =
+        tower.level >= MAX_TOWER_LEVEL
+          ? "Nivel máximo"
+          : `Mejora: ${nextCost} oro`;
 
-    this.selection.innerHTML = `
-      <div class="label">${SYMBOLS[tower.kind]} ${def.name} · Nivel ${tower.level}</div>
-      <div class="row"><span>Daño</span><span>${stats.damage}</span></div>
-      <div class="row"><span>Alcance</span><span>${Math.round(stats.range)}</span></div>
-      <div class="row"><span>Cadencia</span><span>${stats.fireRate}/s</span></div>
-      <div class="actions"></div>
-    `;
-    const actions = this.selection.querySelector(".actions") as HTMLDivElement;
+      this.selection.innerHTML = `
+        <div class="label">${SYMBOLS[tower.kind]} ${def.name} · Nivel ${tower.level}</div>
+        <div class="row"><span>Daño</span><span>${stats.damage}</span></div>
+        <div class="row"><span>Alcance</span><span>${Math.round(stats.range)}</span></div>
+        <div class="row"><span>Cadencia</span><span>${stats.fireRate}/s</span></div>
+        <div class="actions"></div>
+      `;
+      const actions = this.selection.querySelector(".actions") as HTMLDivElement;
 
-    const upgradeBtn = document.createElement("button");
-    upgradeBtn.textContent = upgradeLine;
-    upgradeBtn.disabled =
-      tower.level >= MAX_TOWER_LEVEL || !canAfford(state.gold, nextCost ?? Infinity);
-    upgradeBtn.addEventListener("click", () => this.handlers.onUpgrade());
+      const upgradeBtn = document.createElement("button");
+      upgradeBtn.dataset.action = "upgrade";
+      upgradeBtn.textContent = upgradeLine;
+      upgradeBtn.addEventListener("click", () => this.handlers.onUpgrade());
 
-    const sellBtn = document.createElement("button");
-    sellBtn.textContent = `Vender ${sold}`;
-    sellBtn.addEventListener("click", () => this.handlers.onSell());
+      const sellBtn = document.createElement("button");
+      sellBtn.dataset.action = "sell";
+      sellBtn.addEventListener("click", () => this.handlers.onSell());
 
-    actions.append(upgradeBtn, sellBtn);
+      actions.append(upgradeBtn, sellBtn);
+      this.renderedSelectionKey = selectionKey;
+    }
+
+    const upgradeBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="upgrade"]');
+    const sellBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="sell"]');
+    if (upgradeBtn) {
+      upgradeBtn.disabled =
+        tower.level >= MAX_TOWER_LEVEL || !canAfford(state.gold, nextCost ?? Infinity);
+    }
+    if (sellBtn) sellBtn.textContent = `Vender ${sold}`;
   }
 }
