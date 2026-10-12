@@ -14,7 +14,7 @@ export interface WaveDef {
 }
 
 export function hpMultiplier(wave: number): number {
-  return Math.pow(1.15, Math.max(0, wave - 1));
+  return Math.pow(1.10, Math.max(0, wave - 1));
 }
 
 export function speedMultiplier(wave: number): number {
