@@ -70,7 +70,6 @@ Después, comprobar manualmente:
 - Intención: permitir una tercera torreta Flecha desde la primera oleada y reducir la frustración inicial sin modificar todavía los enemigos ni sus estadísticas.
 - Pendiente: probar la primera oleada con distintas colocaciones y comprobar si el aumento basta antes de tocar más parámetros.
 
-
 ## Oleadas empalmadas y llamada anticipada — 2026-10-12
 
 **Referencias de diseño:** `Kingdom Rush` permite llamar la siguiente oleada antes de que termine la espera y recompensa el tiempo adelantado; `Tower Defense Simulator` combina pausas, saltos de oleada y recompensas de oleada. La implementación de este proyecto adapta el principio a su sistema de oleadas sin temporizador automático.
@@ -87,3 +86,13 @@ Archivos: `src/game.ts`, `src/state.ts`, `src/systems/spawn.ts`, `src/render/hud
 ### Validación pendiente
 
 No se han ejecutado todavía las pruebas en un entorno local. Ejecutar `npm test`, `npm run typecheck` y `npm run build`. Probar especialmente oleadas empalmadas, pago separado de recompensas y el fin de la ventana de 12 segundos.
+
+## Adaptación a móviles — 2026-10-12
+
+Archivo principal: `index.html`; dimensionado del canvas: `src/main.ts`.
+
+- El canvas conserva su resolución lógica de juego (800 × 480) y se escala visualmente mediante CSS para que las coordenadas táctiles sigan correspondiendo a las casillas correctas.
+- En teléfonos en horizontal, el tablero se coloca a la izquierda y los controles a la derecha; el panel de controles puede desplazarse si no cabe en la altura disponible.
+- En teléfonos en vertical, el tablero ocupa el ancho disponible y los controles aparecen debajo. Los botones aumentan su área táctil.
+- Se añadió el botón **Pantalla horizontal**, que intenta entrar en pantalla completa y solicitar bloqueo de orientación landscape. La disponibilidad depende del navegador y del modo de instalación; si se rechaza, muestra una indicación para girar el teléfono manualmente.
+- La adaptación es responsive, no una aplicación nativa. Falta probarla en navegadores móviles reales, incluidos el toque para colocar/seleccionar torretas, el scroll del HUD y el intento de bloqueo de orientación.
