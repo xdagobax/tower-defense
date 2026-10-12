@@ -5,9 +5,11 @@ import type { Enemy, Tower } from "../src/state";
 import { createEnemy } from "../src/systems/spawn";
 import { findEnemiesInRadius, findTarget, towerPosition } from "../src/systems/targeting";
 
-function makeEnemy(id: number, distance: number): Enemy {
+function makeEnemy(id: number, distance: number, hp = 40): Enemy {
   const enemy = createEnemy(id, "basic", 1);
   enemy.distance = distance;
+  enemy.hp = hp;
+  enemy.maxHp = hp;
   return enemy;
 }
 
@@ -22,6 +24,8 @@ const tower: Tower = {
   angle: 0,
 };
 
+const sniper: Tower = { ...tower, kind: "sniper", invested: 120 };
+
 describe("targeting", () => {
   it("la posición de la torreta corresponde al centro de su celda", () => {
     expect(towerPosition(tower)).toEqual(cellCenter(0, 0));
@@ -32,6 +36,22 @@ describe("targeting", () => {
     const behind = makeEnemy(1, 100);
     const ahead = makeEnemy(2, 200);
     const target = findTarget(tower, stats, [behind, ahead]);
+    expect(target?.id).toBe(2);
+  });
+
+  it("el francotirador prioriza al enemigo con más vida actual", () => {
+    const stats = { ...towerStats("sniper", 1), range: 500 };
+    const weakerAndCloserToBase = makeEnemy(1, 200, 35);
+    const healthier = makeEnemy(2, 100, 90);
+    const target = findTarget(sniper, stats, [weakerAndCloserToBase, healthier]);
+    expect(target?.id).toBe(2);
+  });
+
+  it("el francotirador desempata eligiendo al enemigo más cercano a la base", () => {
+    const stats = { ...towerStats("sniper", 1), range: 500 };
+    const fartherFromBase = makeEnemy(1, 100, 80);
+    const closerToBase = makeEnemy(2, 200, 80);
+    const target = findTarget(sniper, stats, [fartherFromBase, closerToBase]);
     expect(target?.id).toBe(2);
   });
 
