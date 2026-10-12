@@ -24,6 +24,8 @@ import { enemyPosition, findTarget, isTargetable, towerPosition } from "./system
 export const VICTORY_WAVE = 20;
 const STARTING_GOLD = 150;
 const STARTING_LIVES = 20;
+const EARLY_WAVE_WINDOW = 12;
+const EARLY_WAVE_GOLD_PER_SECOND = 1;
 const TESLA_CHAIN_RANGE = 90;
 
 export interface Beam {
@@ -65,6 +67,10 @@ export class Game {
   private spawnQueue: QueuedSpawn[] = [];
   private spawnIndex = 0;
   private spawnElapsed = 0;
+  private spawnQueueWave = 1;
+  private spawnQueueFinished = false;
+  private earlyWindowRemaining = 0;
+  private readonly wavesAwaitingClear = new Set<number>();
   private nextEnemyId = 1;
   private nextTowerId = 1;
   private nextProjectileId = 1;
@@ -140,13 +146,46 @@ export class Game {
   }
 
   startWave(): void {
-    if (this.state.phase !== "build") return;
-    this.spawnQueue = buildSpawnQueue(this.state.wave);
+    if (!this.canStartWave) return;
+
+    const bonus = this.earlyWaveBonus;
+    this.state.gold += bonus;
+    this.earlyWindowRemaining = 0;
+
+    if (this.state.phase === "defending") {
+      this.state.wave += 1;
+    } else {
+      this.state.phase = "defending";
+    }
+
+    this.spawnQueueWave = this.state.wave;
+    this.spawnQueue = buildSpawnQueue(this.spawnQueueWave);
     this.spawnIndex = 0;
     this.spawnElapsed = 0;
-    this.state.phase = "defending";
+    this.spawnQueueFinished = false;
     this.state.selectedTowerId = null;
-    this.announce(`Oleada ${this.state.wave}`);
+    this.announce(
+      bonus > 0
+        ? `Oleada ${this.state.wave}: +${bonus} oro por adelantarla`
+        : `Oleada ${this.state.wave}`,
+    );
+  }
+
+  get canStartWave(): boolean {
+    if (this.state.phase === "build") return this.state.wave <= VICTORY_WAVE;
+    return (
+      this.state.phase === "defending" &&
+      this.spawnQueueFinished &&
+      this.state.wave < VICTORY_WAVE
+    );
+  }
+
+  get earlyWaveBonus(): number {
+    return Math.ceil(this.earlyWindowRemaining * EARLY_WAVE_GOLD_PER_SECOND);
+  }
+
+  get earlyWaveWindowRemaining(): number {
+    return this.earlyWindowRemaining;
   }
 
   restart(): void {
@@ -171,6 +210,10 @@ export class Game {
     this.spawnQueue = [];
     this.spawnIndex = 0;
     this.spawnElapsed = 0;
+    this.spawnQueueWave = 1;
+    this.spawnQueueFinished = false;
+    this.earlyWindowRemaining = 0;
+    this.wavesAwaitingClear.clear();
     this.nextEnemyId = 1;
     this.nextTowerId = 1;
     this.nextProjectileId = 1;
@@ -184,6 +227,7 @@ export class Game {
     if (this.state.paused) return;
 
     const sdt = dt * this.state.speed;
+    this.earlyWindowRemaining = Math.max(0, this.earlyWindowRemaining - sdt);
     this.updateSpawning(sdt);
     this.updateEnemies(sdt);
     this.updateTowers(sdt);
@@ -199,14 +243,20 @@ export class Game {
   }
 
   private updateSpawning(dt: number): void {
-    if (this.state.phase !== "defending") return;
+    if (this.state.phase !== "defending" || this.spawnQueueFinished) return;
     this.spawnElapsed += dt;
     while (
       this.spawnIndex < this.spawnQueue.length &&
       this.spawnQueue[this.spawnIndex].at <= this.spawnElapsed
     ) {
       const item = this.spawnQueue[this.spawnIndex++];
-      this.enemies.push(createEnemy(this.nextEnemyId++, item.kind, this.state.wave));
+      this.enemies.push(createEnemy(this.nextEnemyId++, item.kind, this.spawnQueueWave));
+    }
+
+    if (this.spawnIndex >= this.spawnQueue.length) {
+      this.spawnQueueFinished = true;
+      this.wavesAwaitingClear.add(this.spawnQueueWave);
+      this.earlyWindowRemaining = EARLY_WAVE_WINDOW;
     }
   }
 
@@ -358,17 +408,23 @@ export class Game {
   }
 
   private checkWaveEnd(): void {
-    if (this.state.phase !== "defending") return;
-    if (this.spawnIndex < this.spawnQueue.length) return;
-    if (this.enemies.length > 0) return;
+    for (const wave of this.wavesAwaitingClear) {
+      if (this.enemies.some((enemy) => enemy.wave === wave)) continue;
+      this.state.gold += waveRewardBonus(wave);
+      this.wavesAwaitingClear.delete(wave);
+      this.announce(`Oleada ${wave} completada: +${waveRewardBonus(wave)} oro`);
+    }
 
-    this.state.gold += waveRewardBonus(this.state.wave);
+    if (this.state.phase !== "defending") return;
+    if (!this.spawnQueueFinished || this.enemies.length > 0 || this.wavesAwaitingClear.size > 0) return;
+
     if (this.state.wave >= VICTORY_WAVE) {
       this.state.phase = "victory";
       this.bestWave = Math.max(this.bestWave, this.state.wave);
       this.announce("¡Victoria!");
       return;
     }
+
     this.state.wave += 1;
     this.state.phase = "build";
     const unlocked = this.unlockedNow();
