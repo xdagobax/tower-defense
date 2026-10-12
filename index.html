@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Defensa de Torres</title>
+    <style>
+      :root {
+        --ink: #000;
+        --paper: #fff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Courier New", ui-monospace, monospace;
+      }
+      #app {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      canvas#field {
+        display: block;
+        border: 2px solid var(--ink);
+        image-rendering: pixelated;
+        touch-action: none;
+        cursor: crosshair;
+      }
+      #hud {
+        width: 280px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .panel {
+        border: 2px solid var(--ink);
+        padding: 8px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 12px;
+        font-size: 13px;
+      }
+      .stats b {
+        font-size: 15px;
+      }
+      .label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+      }
+      .tower-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      button {
+        font-family: inherit;
+        font-size: 12px;
+        background: var(--paper);
+        color: var(--ink);
+        border: 2px solid var(--ink);
+        padding: 6px 8px;
+        cursor: pointer;
+        text-align: left;
+        line-height: 1.3;
+      }
+      button:hover:not(:disabled) {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      button.selected {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .controls button {
+        text-align: center;
+      }
+      #message {
+        font-size: 12px;
+        min-height: 18px;
+      }
+      #selection {
+        font-size: 12px;
+      }
+      #selection .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      #selection .actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      #selection .actions button {
+        flex: 1;
+        text-align: center;
+      }
+      .hint {
+        font-size: 10px;
+        opacity: 0.6;
+        line-height: 1.4;
+      }
+      .phase-build {
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="field" width="800" height="480"></canvas>
+      <aside id="hud">
+        <h1>Defensa de Torres</h1>
+        <div class="panel stats">
+          <div>Oro</div>
+          <div><b id="stat-gold">0</b></div>
+          <div>Vidas</div>
+          <div><b id="stat-lives">0</b></div>
+          <div>Oleada</div>
+          <div><b id="stat-wave">0</b></div>
+          <div>Estado</div>
+          <div><b id="stat-phase">-</b></div>
+        </div>
+
+        <div class="panel">
+          <div class="label">Torretas</div>
+          <div class="tower-list" id="tower-list"></div>
+        </div>
+
+        <div class="panel" id="selection"></div>
+
+        <div class="controls">
+          <button id="btn-start">Iniciar oleada</button>
+          <button id="btn-pause">Pausa</button>
+          <button id="btn-speed">Velocidad x1</button>
+          <button id="btn-restart">Reiniciar</button>
+        </div>
+
+        <div id="message"></div>
+        <div class="hint">
+          Clic: colocar torreta. 1-5: elegir. Clic en torreta: mejorarla.
+          Espacio: oleada. P: pausa. F: velocidad.
+        </div>
+      </aside>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "tower-defense",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Juego de defensa de torres (Tower Defense) minimalista en blanco y negro.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  }
+}

@@ -1,0 +1,400 @@
+import { ENEMIES, type EnemyKind } from "./config/enemies";
+import {
+  BASE,
+  COLS,
+  FIELD_H,
+  FIELD_W,
+  ROWS,
+  SPAWN,
+  TILE,
+  TOTAL_PATH_LENGTH,
+  cellCenter,
+  isBuildable,
+  type Vec,
+} from "./config/map";
+import { MAX_TOWER_LEVEL, TOWERS, towerStats, type TowerKind } from "./config/towers";
+import { waveRewardBonus } from "./config/waves";
+import type { Enemy, GameState, Projectile, QueuedSpawn, Tower } from "./state";
+import { applyHit } from "./systems/combat";
+import { buildCost, canAfford, sellValue, upgradeCost } from "./systems/economy";
+import { advanceEnemy } from "./systems/movement";
+import { buildSpawnQueue, createEnemy } from "./systems/spawn";
+import { enemyPosition, findTarget, isTargetable, towerPosition } from "./systems/targeting";
+
+export const VICTORY_WAVE = 20;
+const STARTING_GOLD = 100;
+const STARTING_LIVES = 20;
+const TESLA_CHAIN_RANGE = 90;
+
+export interface Beam {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  life: number;
+  maxLife: number;
+}
+
+export interface Flash {
+  x: number;
+  y: number;
+  radius: number;
+  life: number;
+  maxLife: number;
+}
+
+export class Game {
+  readonly fieldWidth = FIELD_W;
+  readonly fieldHeight = FIELD_H;
+  readonly cols = COLS;
+  readonly rows = ROWS;
+  readonly tile = TILE;
+  readonly spawn: Vec = SPAWN;
+  readonly base: Vec = BASE;
+  readonly totalPathLength = TOTAL_PATH_LENGTH;
+
+  state: GameState;
+  enemies: Enemy[] = [];
+  towers: Tower[] = [];
+  projectiles: Projectile[] = [];
+  beams: Beam[] = [];
+  flashes: Flash[] = [];
+
+  messages: string[] = [];
+
+  private spawnQueue: QueuedSpawn[] = [];
+  private spawnIndex = 0;
+  private spawnElapsed = 0;
+  private nextEnemyId = 1;
+  private nextTowerId = 1;
+  private nextProjectileId = 1;
+
+  constructor(state?: Partial<GameState>) {
+    this.state = {
+      phase: "build",
+      gold: STARTING_GOLD,
+      lives: STARTING_LIVES,
+      maxLives: STARTING_LIVES,
+      wave: 1,
+      speed: 1,
+      paused: false,
+      selectedKind: "arrow",
+      selectedTowerId: null,
+      ...state,
+    };
+  }
+
+  isUnlocked(kind: TowerKind): boolean {
+    return this.state.wave >= TOWERS[kind].unlockWave;
+  }
+
+  towerAt(col: number, row: number): Tower | undefined {
+    return this.towers.find((t) => t.col === col && t.row === row);
+  }
+
+  canPlace(col: number, row: number, kind: TowerKind): boolean {
+    return (
+      isBuildable(col, row) &&
+      !this.towerAt(col, row) &&
+      this.isUnlocked(kind) &&
+      canAfford(this.state.gold, buildCost(kind))
+    );
+  }
+
+  placeTower(col: number, row: number, kind: TowerKind): boolean {
+    if (!this.canPlace(col, row, kind)) return false;
+    const cost = buildCost(kind);
+    this.state.gold -= cost;
+    this.towers.push({
+      id: this.nextTowerId++,
+      kind,
+      col,
+      row,
+      level: 1,
+      cooldown: 0,
+      invested: cost,
+      angle: 0,
+    });
+    return true;
+  }
+
+  upgradeTower(id: number): boolean {
+    const tower = this.towers.find((t) => t.id === id);
+    if (!tower) return false;
+    const cost = upgradeCost(tower.kind, tower.level);
+    if (cost === null || !canAfford(this.state.gold, cost)) return false;
+    this.state.gold -= cost;
+    tower.level = Math.min(MAX_TOWER_LEVEL, tower.level + 1);
+    tower.invested += cost;
+    return true;
+  }
+
+  sellTower(id: number): boolean {
+    const idx = this.towers.findIndex((t) => t.id === id);
+    if (idx === -1) return false;
+    const tower = this.towers[idx];
+    this.state.gold += sellValue(tower.invested);
+    this.towers.splice(idx, 1);
+    if (this.state.selectedTowerId === id) this.state.selectedTowerId = null;
+    return true;
+  }
+
+  startWave(): void {
+    if (this.state.phase !== "build") return;
+    this.spawnQueue = buildSpawnQueue(this.state.wave);
+    this.spawnIndex = 0;
+    this.spawnElapsed = 0;
+    this.state.phase = "defending";
+    this.state.selectedTowerId = null;
+    this.announce(`Oleada ${this.state.wave}`);
+  }
+
+  restart(): void {
+    const best = this.bestWave;
+    this.state = {
+      phase: "build",
+      gold: STARTING_GOLD,
+      lives: STARTING_LIVES,
+      maxLives: STARTING_LIVES,
+      wave: 1,
+      speed: 1,
+      paused: false,
+      selectedKind: "arrow",
+      selectedTowerId: null,
+    };
+    this.enemies = [];
+    this.towers = [];
+    this.projectiles = [];
+    this.beams = [];
+    this.flashes = [];
+    this.messages = [];
+    this.spawnQueue = [];
+    this.spawnIndex = 0;
+    this.spawnElapsed = 0;
+    this.nextEnemyId = 1;
+    this.nextTowerId = 1;
+    this.nextProjectileId = 1;
+    this.bestWave = best;
+  }
+
+  bestWave = 0;
+
+  update(dt: number): void {
+    if (this.state.phase === "gameover" || this.state.phase === "victory") return;
+    if (this.state.paused) return;
+
+    const sdt = dt * this.state.speed;
+    this.updateSpawning(sdt);
+    this.updateEnemies(sdt);
+    this.updateTowers(sdt);
+    this.updateProjectiles(sdt);
+    this.updateEffects(sdt);
+    this.cleanup();
+    this.checkWaveEnd();
+  }
+
+  private announce(text: string): void {
+    this.messages.push(text);
+    if (this.messages.length > 4) this.messages.shift();
+  }
+
+  private updateSpawning(dt: number): void {
+    if (this.state.phase !== "defending") return;
+    this.spawnElapsed += dt;
+    while (
+      this.spawnIndex < this.spawnQueue.length &&
+      this.spawnQueue[this.spawnIndex].at <= this.spawnElapsed
+    ) {
+      const item = this.spawnQueue[this.spawnIndex++];
+      this.enemies.push(createEnemy(this.nextEnemyId++, item.kind, this.state.wave));
+    }
+  }
+
+  private updateEnemies(dt: number): void {
+    for (const enemy of this.enemies) {
+      if (!enemy.alive || enemy.reachedBase) continue;
+      advanceEnemy(enemy, dt);
+      if (enemy.distance >= this.totalPathLength) {
+        enemy.distance = this.totalPathLength;
+        enemy.reachedBase = true;
+      }
+    }
+  }
+
+  private updateTowers(dt: number): void {
+    for (const tower of this.towers) {
+      tower.cooldown -= dt;
+      const stats = towerStats(tower.kind, tower.level);
+      if (tower.cooldown > 0) continue;
+      const target = findTarget(tower, stats, this.enemies);
+      if (!target) continue;
+
+      const origin = towerPosition(tower);
+      const targetPos = enemyPosition(target);
+      tower.angle = Math.atan2(targetPos.y - origin.y, targetPos.x - origin.x);
+
+      if (tower.kind === "tesla") {
+        this.fireTesla(tower, stats.chain ?? 1, stats.damage);
+      } else {
+        this.projectiles.push({
+          id: this.nextProjectileId++,
+          x: origin.x,
+          y: origin.y,
+          targetId: target.id,
+          speed: stats.projectileSpeed,
+          damage: stats.damage,
+          kind: tower.kind,
+          splash: stats.splash,
+          slowFactor: stats.slowFactor,
+          slowDuration: stats.slowDuration,
+          dead: false,
+        });
+      }
+      tower.cooldown = 1 / Math.max(0.05, stats.fireRate);
+    }
+  }
+
+  private fireTesla(tower: Tower, chainCount: number, damage: number): void {
+    const hitIds = new Set<number>();
+    let current: Enemy | null = findTarget(tower, towerStats("tesla", tower.level), this.enemies);
+    let from = towerPosition(tower);
+
+    for (let i = 0; i < chainCount && current; i++) {
+      const pos = enemyPosition(current);
+      this.addBeam(from, pos);
+      applyHit(this.enemies, current, damage);
+      hitIds.add(current.id);
+      from = pos;
+
+      let nearest: Enemy | null = null;
+      let nearestDist = Infinity;
+      for (const enemy of this.enemies) {
+        if (hitIds.has(enemy.id) || !isTargetable(enemy)) continue;
+        const p = enemyPosition(enemy);
+        const d = Math.hypot(p.x - pos.x, p.y - pos.y);
+        if (d <= TESLA_CHAIN_RANGE && d < nearestDist) {
+          nearestDist = d;
+          nearest = enemy;
+        }
+      }
+      current = nearest;
+    }
+  }
+
+  private updateProjectiles(dt: number): void {
+    for (const projectile of this.projectiles) {
+      if (projectile.dead) continue;
+      const target = this.enemies.find((e) => e.id === projectile.targetId);
+      if (!target || !isTargetable(target)) {
+        projectile.dead = true;
+        continue;
+      }
+      const pos = enemyPosition(target);
+      const dx = pos.x - projectile.x;
+      const dy = pos.y - projectile.y;
+      const dist = Math.hypot(dx, dy);
+      const step = projectile.speed * dt;
+
+      if (dist <= step || dist < 1) {
+        projectile.x = pos.x;
+        projectile.y = pos.y;
+        if (projectile.splash) {
+          this.addFlash(pos.x, pos.y, projectile.splash);
+        }
+        applyHit(this.enemies, target, projectile.damage, {
+          splash: projectile.splash,
+          slowFactor: projectile.slowFactor,
+          slowDuration: projectile.slowDuration,
+        });
+        projectile.dead = true;
+      } else {
+        projectile.x += (dx / dist) * step;
+        projectile.y += (dy / dist) * step;
+      }
+    }
+  }
+
+  private updateEffects(dt: number): void {
+    for (const beam of this.beams) beam.life -= dt;
+    for (const flash of this.flashes) flash.life -= dt;
+    this.beams = this.beams.filter((b) => b.life > 0);
+    this.flashes = this.flashes.filter((f) => f.life > 0);
+  }
+
+  private addBeam(a: Vec, b: Vec): void {
+    this.beams.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, life: 0.12, maxLife: 0.12 });
+  }
+
+  private addFlash(x: number, y: number, radius: number): void {
+    this.flashes.push({ x, y, radius, life: 0.18, maxLife: 0.18 });
+  }
+
+  private cleanup(): void {
+    const survivors: Enemy[] = [];
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) {
+        this.state.gold += enemy.reward;
+        continue;
+      }
+      if (enemy.reachedBase) {
+        this.state.lives -= this.leakDamage(enemy);
+        continue;
+      }
+      survivors.push(enemy);
+    }
+    this.enemies = survivors;
+    this.projectiles = this.projectiles.filter((p) => !p.dead);
+
+    if (this.state.lives <= 0) {
+      this.state.lives = 0;
+      this.state.phase = "gameover";
+      this.bestWave = Math.max(this.bestWave, this.state.wave);
+      this.announce("¡Base destruida!");
+    }
+  }
+
+  private leakDamage(enemy: Enemy): number {
+    return enemy.kind === "boss" ? 5 : 1;
+  }
+
+  private checkWaveEnd(): void {
+    if (this.state.phase !== "defending") return;
+    if (this.spawnIndex < this.spawnQueue.length) return;
+    if (this.enemies.length > 0) return;
+
+    this.state.gold += waveRewardBonus(this.state.wave);
+    if (this.state.wave >= VICTORY_WAVE) {
+      this.state.phase = "victory";
+      this.bestWave = Math.max(this.bestWave, this.state.wave);
+      this.announce("¡Victoria!");
+      return;
+    }
+    this.state.wave += 1;
+    this.state.phase = "build";
+    const unlocked = this.unlockedNow();
+    if (unlocked) this.announce(`Nueva torreta: ${TOWERS[unlocked].name}`);
+  }
+
+  private unlockedNow(): TowerKind | null {
+    for (const kind of Object.keys(TOWERS) as TowerKind[]) {
+      if (TOWERS[kind].unlockWave === this.state.wave) return kind;
+    }
+    return null;
+  }
+
+  enemyLeakDamage(enemy: Enemy): number {
+    return this.leakDamage(enemy);
+  }
+
+  enemyDef(kind: EnemyKind) {
+    return ENEMIES[kind];
+  }
+
+  towerCenter(tower: Tower): Vec {
+    return cellCenter(tower.col, tower.row);
+  }
+
+  get bestWaveLabel(): string {
+    return `Mejor oleada: ${this.bestWave}`;
+  }
+}
