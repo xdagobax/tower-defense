@@ -1,4 +1,3 @@
-import { FIELD_H, FIELD_W } from "./config/map";
 import { createLoop } from "./core/loop";
 import { Game } from "./game";
 import { attachInput } from "./input/input";
@@ -11,10 +10,8 @@ const ctx = canvas.getContext("2d");
 if (!ctx) throw new Error("No se pudo obtener el contexto 2D");
 
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
-canvas.width = FIELD_W * dpr;
-canvas.height = FIELD_H * dpr;
-canvas.style.width = `${FIELD_W}px`;
-canvas.style.height = `${FIELD_H}px`;
+canvas.width = 800 * dpr;
+canvas.height = 480 * dpr;
 ctx.scale(dpr, dpr);
 
 const game = new Game();
