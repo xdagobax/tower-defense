@@ -5,6 +5,7 @@ export type GamePhase = "build" | "defending" | "gameover" | "victory";
 
 export interface Enemy {
   id: number;
+  wave: number;
   kind: EnemyKind;
   hp: number;
   maxHp: number;
