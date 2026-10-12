@@ -1,5 +1,8 @@
 import type { EnemyKind } from "./enemies";
 
+export const EARLY_WAVE_WINDOW_SECONDS = 12;
+export const EARLY_WAVE_GOLD_PER_SECOND = 1;
+
 export interface EnemyGroup {
   kind: EnemyKind;
   count: number;
