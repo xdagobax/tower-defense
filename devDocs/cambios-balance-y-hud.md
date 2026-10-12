@@ -1,7 +1,7 @@
 # Cambios de HUD y balance del juego
 
 **Fecha:** 2026-10-12  
-**Estado:** oro inicial aumentado a 150; falta validación en navegador y ejecución local de pruebas.
+**Estado:** oro inicial aumentado a 150 y prioridad de objetivos del francotirador implementada; pendientes pruebas locales y validación en navegador.
 
 ## Objetivo
 
@@ -28,11 +28,19 @@ Fuentes: `src/config/waves.ts`, `src/config/enemies.ts` y `src/config/towers.ts`
 - La torreta Flecha cuesta **50** de oro; sus mejoras cuestan **40** y **80**. El oro inicial se aumentó de **100 a 150** en `src/game.ts`. Esto permite comenzar con tres torretas Flecha (50 de oro cada una), dando más margen para cubrir la primera oleada sin alterar el coste ni el daño de las torretas. El mismo valor se aplica al reiniciar la partida porque ambas rutas usan `STARTING_GOLD`.
 - Las torretas se desbloquean progresivamente: Cañón en oleada 2, Escarcha en la 3, Francotirador en la 6 y Tesla en la 10.
 
+## Priorización del francotirador
+
+Archivos: `src/systems/targeting.ts` y `tests/targeting.test.ts`.
+
+- El francotirador prioriza al enemigo que tenga **más vida actual** entre los enemigos vivos, no escapados y dentro de su alcance.
+- Si varios enemigos tienen la misma vida actual, elige al que lleve más distancia recorrida por el camino, es decir, el más cercano a la base.
+- Las demás torretas conservan su comportamiento anterior: apuntan al enemigo válido más avanzado del camino.
+- Se añadieron pruebas unitarias para comprobar la prioridad por vida y el desempate por cercanía a la base.
+
 ## Observaciones de pruebas y límites
 
 - En una prueba de la primera oleada con dos torretas Flecha en las posiciones (7, 8) y (13, 8), el resultado registrado fue **20/20 vidas**, **155 de oro final**, **cero enemigos escapados** y **cero disparos desperdiciados**.
 - Una simulación aproximada posterior llegó a perder en la oleada 10. No constituye una verificación exhaustiva de las 20 oleadas ni demuestra que la partida completa sea imposible.
-- Se observó como posible problema que la selección de objetivos pueda duplicar disparos sobre un mismo enemigo y desperdiciar daño. Debe comprobarse con pruebas específicas antes de cambiar la lógica de targeting.
 - El objetivo de diseño es que la partida sea desafiante, pero no dependa de una estrategia matemáticamente inviable ni de acertar una colocación única.
 
 ## Validación pendiente
@@ -51,9 +59,9 @@ Después, comprobar manualmente:
 3. Confirmar que el botón se deshabilita si no hay oro suficiente y al alcanzar el nivel máximo.
 4. Repetir una mejora durante una oleada y verificar que el panel sigue respondiendo.
 5. Jugar varias oleadas observando oro, fugas, selección de objetivos y dificultad.
+6. Cuando se desbloquee el francotirador (oleada 6), comprobar que apunta al enemigo con más vida y, en empate, al que está más cerca de la base.
 
 **Importante:** no se deben considerar las 20 oleadas verificadas hasta completar una partida real o una simulación automatizada reproducible.
-
 
 ## Ajuste de oro inicial — 2026-10-12
 
