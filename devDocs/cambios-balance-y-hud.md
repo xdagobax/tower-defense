@@ -1,7 +1,7 @@
 # Cambios de HUD y balance del juego
 
 **Fecha:** 2026-10-12  
-**Estado:** cambios documentados; falta validación en navegador y ejecución local de pruebas.
+**Estado:** oro inicial aumentado a 150; falta validación en navegador y ejecución local de pruebas.
 
 ## Objetivo
 
@@ -25,7 +25,7 @@ Fuentes: `src/config/waves.ts`, `src/config/enemies.ts` y `src/config/towers.ts`
 - La velocidad aumenta un **2 % por oleada**, con multiplicador máximo de **1.8**.
 - La recompensa de oleada escala con `1 + 0.05 × (oleada - 1)`; además, el bono de finalización es `20 + 5 × oleada`.
 - Los jefes aparecen cada cinco oleadas. Su vida base actual es **600**, velocidad **30**, armadura **6** y recompensa **80**.
-- La torreta Flecha cuesta **50** de oro; sus mejoras cuestan **40** y **80**. El oro inicial conocido para la prueba inicial es **100**, por lo que permite comenzar con dos torretas Flecha.
+- La torreta Flecha cuesta **50** de oro; sus mejoras cuestan **40** y **80**. El oro inicial se aumentó de **100 a 150** en `src/game.ts`. Esto permite comenzar con tres torretas Flecha (50 de oro cada una), dando más margen para cubrir la primera oleada sin alterar el coste ni el daño de las torretas. El mismo valor se aplica al reiniciar la partida porque ambas rutas usan `STARTING_GOLD`.
 - Las torretas se desbloquean progresivamente: Cañón en oleada 2, Escarcha en la 3, Francotirador en la 6 y Tesla en la 10.
 
 ## Observaciones de pruebas y límites
@@ -53,3 +53,11 @@ Después, comprobar manualmente:
 5. Jugar varias oleadas observando oro, fugas, selección de objetivos y dificultad.
 
 **Importante:** no se deben considerar las 20 oleadas verificadas hasta completar una partida real o una simulación automatizada reproducible.
+
+
+## Ajuste de oro inicial — 2026-10-12
+
+- `STARTING_GOLD`: **100 → 150**.
+- Afecta tanto al inicio de una partida nueva como a `restart()`, que reutiliza la constante.
+- Intención: permitir una tercera torreta Flecha desde la primera oleada y reducir la frustración inicial sin modificar todavía los enemigos ni sus estadísticas.
+- Pendiente: probar la primera oleada con distintas colocaciones y comprobar si el aumento basta antes de tocar más parámetros.
