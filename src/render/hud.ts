@@ -95,9 +95,19 @@ export class Hud {
       }
     }
 
-    this.startBtn.disabled = state.phase !== "build";
-    this.startBtn.textContent =
-      state.phase === "build" ? `Iniciar oleada ${state.wave}` : "En curso";
+    this.startBtn.disabled = !this.game.canStartWave;
+    const bonus = this.game.earlyWaveBonus;
+    const windowText =
+      bonus > 0
+        ? ` (+${bonus} oro · ${Math.ceil(this.game.earlyWaveWindowRemaining)}s)`
+        : "";
+    if (state.phase === "build") {
+      this.startBtn.textContent = `Iniciar oleada ${state.wave}${windowText}`;
+    } else if (this.game.canStartWave) {
+      this.startBtn.textContent = `Llamar oleada ${state.wave + 1}${windowText || " (sin bonus)"}`;
+    } else {
+      this.startBtn.textContent = "Oleada en curso";
+    }
     this.pauseBtn.textContent = state.paused ? "Reanudar" : "Pausa";
     this.speedBtn.textContent = `Velocidad x${state.speed}`;
 
