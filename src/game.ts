@@ -13,7 +13,11 @@ import {
   type Vec,
 } from "./config/map";
 import { MAX_TOWER_LEVEL, TOWERS, towerStats, type TowerKind } from "./config/towers";
-import { waveRewardBonus } from "./config/waves";
+import {
+  EARLY_WAVE_GOLD_PER_SECOND,
+  EARLY_WAVE_WINDOW_SECONDS,
+  waveRewardBonus,
+} from "./config/waves";
 import type { Enemy, GameState, Projectile, QueuedSpawn, Tower } from "./state";
 import { applyHit } from "./systems/combat";
 import { buildCost, canAfford, sellValue, upgradeCost } from "./systems/economy";
@@ -24,8 +28,6 @@ import { enemyPosition, findTarget, isTargetable, towerPosition } from "./system
 export const VICTORY_WAVE = 20;
 const STARTING_GOLD = 150;
 const STARTING_LIVES = 20;
-const EARLY_WAVE_WINDOW = 12;
-const EARLY_WAVE_GOLD_PER_SECOND = 1;
 const TESLA_CHAIN_RANGE = 90;
 
 export interface Beam {
@@ -256,7 +258,7 @@ export class Game {
     if (this.spawnIndex >= this.spawnQueue.length) {
       this.spawnQueueFinished = true;
       this.wavesAwaitingClear.add(this.spawnQueueWave);
-      this.earlyWindowRemaining = EARLY_WAVE_WINDOW;
+      this.earlyWindowRemaining = EARLY_WAVE_WINDOW_SECONDS;
     }
   }
 
@@ -408,6 +410,8 @@ export class Game {
   }
 
   private checkWaveEnd(): void {
+    if (this.state.phase === "gameover" || this.state.phase === "victory") return;
+
     for (const wave of this.wavesAwaitingClear) {
       if (this.enemies.some((enemy) => enemy.wave === wave)) continue;
       this.state.gold += waveRewardBonus(wave);
