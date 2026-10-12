@@ -48,7 +48,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
     kind: "boss",
     name: "Jefe",
     shape: "hexagon",
-    hp: 900,
+    hp: 600,
     speed: 30,
     reward: 80,
     armor: 6,
