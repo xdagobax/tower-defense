@@ -107,7 +107,10 @@ export class Hud {
 
   private buildPermanentButtons(): void {
     const ids: UpgradeId[] = ["startingGold", "killGold"];
-    for (const kind of TOWER_ORDER) {\n      if (kind === "frost") continue;\n      ids.push(("damage:" + kind) as UpgradeId, ("fireRate:" + kind) as UpgradeId);\n    }
+    for (const kind of TOWER_ORDER) {
+      if (kind === "frost") continue;
+      ids.push(("damage:" + kind) as UpgradeId, ("fireRate:" + kind) as UpgradeId);
+    }
     for (const id of ids) {
       const btn = document.createElement("button");
       btn.dataset.upgrade = id;
