@@ -27,8 +27,20 @@
       }
       h1 { font-size: 16px; margin: 0; letter-spacing: 1px; text-transform: uppercase; }
       .panel { border: 2px solid var(--ink); padding: 8px; }
-      .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 13px; }
-      .stats b { font-size: 15px; }
+      .stats-panel { padding: 6px; }
+      .stats-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; border: 0; padding: 5px 4px; min-height: 30px; font-weight: bold; }
+      .stats-toggle:hover:not(:disabled) { background: transparent; color: var(--ink); }
+      .stats-expanded { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; padding: 5px 4px 2px; font-size: 13px; }
+      .stats-expanded b { font-size: 15px; }
+      .stats-compact { display: none; gap: 6px; align-items: center; justify-content: space-around; padding: 4px 2px 2px; }
+      .stats-compact span { white-space: nowrap; font-size: 12px; font-weight: bold; }
+      .stats-panel.is-collapsed .stats-expanded { display: none; }
+      .stats-panel.is-collapsed .stats-compact { display: flex; }
+      .gameplay-focused .tabs,
+      .gameplay-focused #btn-restart,
+      .gameplay-focused #btn-orientation,
+      .gameplay-focused #orientation-status,
+      .gameplay-focused [data-game-extra] { display: none !important; }
       .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
       .tower-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
       .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
@@ -85,8 +97,9 @@
         canvas#field { flex: 0 0 auto; width: 100%; max-width: 100%; }
         #hud { width: 100%; flex: 0 0 auto; }
         h1 { font-size: 15px; }
-        .stats { font-size: 14px; }
-        .stats b { font-size: 16px; }
+        .stats-expanded { font-size: 14px; }
+        .stats-expanded b { font-size: 16px; }
+        .stats-compact span { font-size: 13px; }
         button { font-size: 13px; min-height: 42px; padding: 9px; }
         .hint { font-size: 11px; }
         .tab-button { min-height: 44px; }
@@ -98,12 +111,23 @@
       <canvas id="field" width="800" height="480" aria-label="Tablero de Defensa de Torres"></canvas>
       <aside id="hud">
         <h1>Defensa de Torres</h1>
-        <div class="panel stats">
-          <div>Oro</div><div><b id="stat-gold">0</b></div>
-          <div>Vidas</div><div><b id="stat-lives">0</b></div>
-          <div>Oleada</div><div><b id="stat-wave">0</b></div>
-          <div>Experiencia</div><div><b id="xp-count">0</b></div>
-          <div>Estado</div><div><b id="stat-phase">-</b></div>
+        <div class="panel stats-panel is-collapsed" id="stats-panel">
+          <button id="btn-stats-toggle" class="stats-toggle" type="button" aria-expanded="false" aria-controls="stats-expanded">
+            <span>Estado de partida</span><span id="stats-toggle-icon" aria-hidden="true">＋</span>
+          </button>
+          <div class="stats-expanded" id="stats-expanded">
+            <div>Oro</div><div><b id="stat-gold">0</b></div>
+            <div>Vidas</div><div><b id="stat-lives">0</b></div>
+            <div>Oleada</div><div><b id="stat-wave">0</b></div>
+            <div>Experiencia</div><div><b id="xp-count">0</b></div>
+            <div>Estado</div><div><b id="stat-phase">-</b></div>
+          </div>
+          <div class="stats-compact" aria-label="Resumen de partida">
+            <span title="Oro">🪙 <b id="compact-gold">0</b></span>
+            <span title="Vidas">❤️ <b id="compact-lives">0</b></span>
+            <span title="Oleada">🌊 <b id="compact-wave">0</b></span>
+            <span title="Experiencia">✨ <b id="compact-xp">0</b></span>
+          </div>
         </div>
         <nav class="tabs" role="tablist" aria-label="Secciones del juego">
           <button class="tab-button" type="button" role="tab" id="tab-home" data-tab="home" aria-controls="panel-home" aria-selected="true">Inicio</button>
@@ -132,10 +156,10 @@
             <button id="btn-speed">Velocidad x1</button>
             <button id="btn-restart">Reiniciar nivel</button>
           </div>
-          <p class="hint">Puedes llamar la siguiente oleada cuando termine de aparecer la actual. Si la llamas dentro de la ventana de bonificación, obtienes oro extra.</p>
+          <p class="hint" data-game-extra>Puedes llamar la siguiente oleada cuando termine de aparecer la actual. Si la llamas dentro de la ventana de bonificación, obtienes oro extra.</p>
           <button id="btn-orientation" type="button">Pantalla horizontal</button>
           <div id="orientation-status" class="hint" aria-live="polite"></div>
-          <p class="hint">Toca el tablero para colocar torretas. Toca una torreta para seleccionarla. Teclas: 1-5 elegir, espacio oleada, P pausa, F velocidad.</p>
+          <p class="hint" data-game-extra>Toca el tablero para colocar torretas. Toca una torreta para seleccionarla. Teclas: 1-5 elegir, espacio oleada, P pausa, F velocidad.</p>
         </section>
         <section class="tab-panel" id="panel-upgrades" role="tabpanel" aria-labelledby="tab-upgrades" hidden>
           <div class="panel">

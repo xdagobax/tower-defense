@@ -52,6 +52,13 @@ export class Hud {
   private readonly levelSelect = must<HTMLSelectElement>("level-select");
   private readonly levelStatus = must("level-status");
   private readonly xpCount = must("xp-count");
+  private readonly compactGold = must("compact-gold");
+  private readonly compactLives = must("compact-lives");
+  private readonly compactWave = must("compact-wave");
+  private readonly compactXp = must("compact-xp");
+  private readonly statsPanel = must("stats-panel");
+  private readonly statsToggle = must<HTMLButtonElement>("btn-stats-toggle");
+  private readonly statsToggleIcon = must("stats-toggle-icon");
   private readonly permanentList = must("permanent-upgrades");
   private readonly newGameBtn = must<HTMLButtonElement>("btn-new-game");
   private readonly permanentButtons = new Map<UpgradeId, HTMLButtonElement>();
@@ -66,6 +73,11 @@ export class Hud {
     private readonly game: Game,
     private readonly handlers: HudHandlers,
   ) {
+    this.statsToggle.addEventListener("click", () => {
+      const collapsed = this.statsPanel.classList.toggle("is-collapsed");
+      this.statsToggle.setAttribute("aria-expanded", String(!collapsed));
+      this.statsToggleIcon.textContent = collapsed ? "＋" : "−";
+    });
     this.buildTowerButtons();
     this.startBtn.addEventListener("click", () => this.handlers.onStartWave());
     this.pauseBtn.addEventListener("click", () => this.handlers.onTogglePause());
@@ -125,6 +137,13 @@ export class Hud {
     this.wave.textContent = `${state.wave} · meta ${10 + (this.game.level - 1) * 5}`;
     this.phase.textContent = PHASE_LABELS[state.phase] ?? state.phase;
     this.phase.className = state.phase === "build" ? "phase-build" : "";
+    this.compactGold.textContent = String(state.gold);
+    this.compactLives.textContent = String(state.lives);
+    this.compactWave.textContent = String(state.wave);
+    this.compactXp.textContent = String(this.game.progress.experience);
+    // Durante el juego activo ocultamos la navegación y las acciones secundarias.
+    const showSecondaryControls = state.paused || (state.phase === "build" && state.wave === 1) || state.phase === "gameover" || state.phase === "victory";
+    document.body.classList.toggle("gameplay-focused", !showSecondaryControls);
 
     for (const kind of TOWER_ORDER) {
       const btn = this.towerButtons.get(kind);
