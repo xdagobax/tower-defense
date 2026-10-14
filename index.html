@@ -31,6 +31,9 @@
       .stats b { font-size: 15px; }
       .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
       .tower-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .permanent-list { display: grid; grid-template-columns: 1fr; gap: 5px; }
+      .permanent-list button { font-size: 11px; }
+      select { font: inherit; width: 100%; padding: 8px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); margin-bottom: 6px; }
       button {
         font-family: inherit; font-size: 12px; background: var(--paper); color: var(--ink);
         border: 2px solid var(--ink); padding: 8px; cursor: pointer; text-align: left;
@@ -86,18 +89,22 @@
           <div>Oro</div><div><b id="stat-gold">0</b></div>
           <div>Vidas</div><div><b id="stat-lives">0</b></div>
           <div>Oleada</div><div><b id="stat-wave">0</b></div>
+          <div>Experiencia</div><div><b id="xp-count">0</b></div>
           <div>Estado</div><div><b id="stat-phase">-</b></div>
         </div>
         <div class="panel">
           <div class="label">Torretas</div>
           <div class="tower-list" id="tower-list"></div>
         </div>
+        <div class="panel"><div class="label">Seleccionar nivel</div><select id="level-select" aria-label="Seleccionar nivel"></select><div id="level-status" class="hint"></div></div>
+        <div class="panel"><div class="label">Mejoras permanentes (XP)</div><div id="permanent-upgrades" class="permanent-list"></div></div>
         <div class="panel" id="selection"></div>
         <div class="controls">
           <button id="btn-start">Iniciar oleada</button>
           <button id="btn-pause">Pausa</button>
           <button id="btn-speed">Velocidad x1</button>
-          <button id="btn-restart">Reiniciar</button>
+          <button id="btn-restart">Reiniciar nivel</button>
+          <button id="btn-new-game">Juego nuevo</button>
         </div>
         <button id="btn-orientation" type="button">Pantalla horizontal</button>
         <div id="orientation-status" class="hint" aria-live="polite"></div>

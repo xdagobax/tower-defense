@@ -36,7 +36,20 @@ const hud = new Hud(game, {
   },
   onRestart() {
     game.restart();
-    clearPersisted();
+    persistGame(game);
+  },
+  onNewGame() {
+    if (window.confirm("¿Iniciar un juego nuevo? Se borrarán experiencia, mejoras, récords y niveles desbloqueados.")) {
+      game.newGame();
+      clearPersisted();
+      persistGame(game);
+    }
+  },
+  onSelectLevel(level) {
+    if (game.selectLevel(level)) persistGame(game);
+  },
+  onPurchaseUpgrade(id) {
+    if (game.purchasePermanentUpgrade(id)) persistGame(game);
   },
   onUpgrade() {
     if (game.state.selectedTowerId !== null) game.upgradeTower(game.state.selectedTowerId);
@@ -57,7 +70,9 @@ if (import.meta.env.DEV) {
 let lastPhase = game.state.phase;
 const loop = createLoop({
   update(dt) {
+    const oldRevision = game.progressRevision;
     game.update(dt);
+    if (game.progressRevision !== oldRevision || game.state.phase !== lastPhase) persistGame(game);
     if (game.state.phase !== lastPhase) {
       lastPhase = game.state.phase;
       persistGame(game);

@@ -13,6 +13,7 @@ import {
   type Vec,
 } from "./config/map";
 import { MAX_TOWER_LEVEL, TOWERS, towerStats, type TowerKind } from "./config/towers";
+import { awardExperience, canPurchaseUpgrade, createPermanentProgress, experienceForKill, experienceForWave, levelDifficultyMultiplier, purchaseUpgrade, recordWave, upgradeMultiplier, type PermanentProgress, type UpgradeId } from "./config/progression";
 import {
   EARLY_WAVE_GOLD_PER_SECOND,
   EARLY_WAVE_WINDOW_SECONDS,
@@ -25,7 +26,6 @@ import { advanceEnemy } from "./systems/movement";
 import { buildSpawnQueue, createEnemy } from "./systems/spawn";
 import { enemyPosition, findTarget, isTargetable, towerPosition } from "./systems/targeting";
 
-export const VICTORY_WAVE = 20;
 const STARTING_GOLD = 150;
 const STARTING_LIVES = 20;
 const TESLA_CHAIN_RANGE = 90;
@@ -58,6 +58,9 @@ export class Game {
   readonly totalPathLength = TOTAL_PATH_LENGTH;
 
   state: GameState;
+  level = 1;
+  progress: PermanentProgress = createPermanentProgress();
+  progressRevision = 0;
   enemies: Enemy[] = [];
   towers: Tower[] = [];
   projectiles: Projectile[] = [];
@@ -80,7 +83,7 @@ export class Game {
   constructor(state?: Partial<GameState>) {
     this.state = {
       phase: "build",
-      gold: STARTING_GOLD,
+      gold: this.startingGold(),
       lives: STARTING_LIVES,
       maxLives: STARTING_LIVES,
       wave: 1,
@@ -174,12 +177,8 @@ export class Game {
   }
 
   get canStartWave(): boolean {
-    if (this.state.phase === "build") return this.state.wave <= VICTORY_WAVE;
-    return (
-      this.state.phase === "defending" &&
-      this.spawnQueueFinished &&
-      this.state.wave < VICTORY_WAVE
-    );
+    if (this.state.phase === "build") return true;
+    return this.state.phase === "defending" && this.spawnQueueFinished;
   }
 
   get earlyWaveBonus(): number {
@@ -192,9 +191,10 @@ export class Game {
 
   restart(): void {
     const best = this.bestWave;
+    const level = this.level;
     this.state = {
       phase: "build",
-      gold: STARTING_GOLD,
+      gold: this.startingGold(),
       lives: STARTING_LIVES,
       maxLives: STARTING_LIVES,
       wave: 1,
@@ -220,6 +220,51 @@ export class Game {
     this.nextTowerId = 1;
     this.nextProjectileId = 1;
     this.bestWave = best;
+    this.level = level;
+  }
+
+  newGame(): void {
+    this.progress = createPermanentProgress();
+    this.progressRevision++;
+    this.level = 1;
+    this.bestWave = 0;
+    this.restart();
+  }
+
+  selectLevel(level: number): boolean {
+    const target = Math.floor(level);
+    if (target < 1 || target > this.progress.highestUnlockedLevel) return false;
+    this.level = target;
+    this.restart();
+    return true;
+  }
+
+  private startingGold(): number {
+    return STARTING_GOLD + Math.round(STARTING_GOLD * (upgradeMultiplier(this.progress.upgrades.startingGold ?? 0) - 1));
+  }
+
+  private effectiveTowerStats(kind: TowerKind, level: number) {
+    const base = towerStats(kind, level);
+    return {
+      ...base,
+      damage: base.damage * upgradeMultiplier(this.progress.upgrades[`damage:${kind}`] ?? 0),
+      fireRate: base.fireRate * upgradeMultiplier(this.progress.upgrades[`fireRate:${kind}`] ?? 0),
+    };
+  }
+
+  purchasePermanentUpgrade(id: UpgradeId): boolean {
+    if ((this.progress.upgrades[id] ?? 0) >= 10 || !canPurchaseUpgrade(this.progress, id)) return false;
+    const bought = purchaseUpgrade(this.progress, id);
+    if (bought) this.progressRevision++;
+    return bought;
+  }
+
+  private recordCurrentWave(wave = this.state.wave): void {
+    const result = recordWave(this.progress, this.level, wave);
+    this.progressRevision++;
+    if (wave >= 10 + (this.level - 1) * 5) this.progressRevision += awardExperience(this.progress, experienceForWave(this.level, wave));
+    this.bestWave = Math.max(this.bestWave, wave);
+    if (result.unlockedLevel > this.level) this.announce(`¡Nivel ${this.level} superado! Nivel ${this.level + 1} desbloqueado`);
   }
 
   bestWave = 0;
@@ -252,7 +297,7 @@ export class Game {
       this.spawnQueue[this.spawnIndex].at <= this.spawnElapsed
     ) {
       const item = this.spawnQueue[this.spawnIndex++];
-      this.enemies.push(createEnemy(this.nextEnemyId++, item.kind, this.spawnQueueWave));
+      this.enemies.push(createEnemy(this.nextEnemyId++, item.kind, this.spawnQueueWave, levelDifficultyMultiplier(this.level)));
     }
 
     if (this.spawnIndex >= this.spawnQueue.length) {
@@ -276,7 +321,7 @@ export class Game {
   private updateTowers(dt: number): void {
     for (const tower of this.towers) {
       tower.cooldown -= dt;
-      const stats = towerStats(tower.kind, tower.level);
+      const stats = this.effectiveTowerStats(tower.kind, tower.level);
       if (tower.cooldown > 0) continue;
       const target = findTarget(tower, stats, this.enemies);
       if (!target) continue;
@@ -308,7 +353,7 @@ export class Game {
 
   private fireTesla(tower: Tower, chainCount: number, damage: number): void {
     const hitIds = new Set<number>();
-    let current: Enemy | null = findTarget(tower, towerStats("tesla", tower.level), this.enemies);
+    let current: Enemy | null = findTarget(tower, this.effectiveTowerStats("tesla", tower.level), this.enemies);
     let from = towerPosition(tower);
 
     for (let i = 0; i < chainCount && current; i++) {
@@ -385,7 +430,8 @@ export class Game {
     const survivors: Enemy[] = [];
     for (const enemy of this.enemies) {
       if (!enemy.alive) {
-        this.state.gold += enemy.reward;
+        this.state.gold += Math.round(enemy.reward * upgradeMultiplier(this.progress.upgrades.killGold ?? 0));
+        this.progressRevision += awardExperience(this.progress, experienceForKill(this.level, enemy.wave));
         continue;
       }
       if (enemy.reachedBase) {
@@ -401,6 +447,7 @@ export class Game {
       this.state.lives = 0;
       this.state.phase = "gameover";
       this.bestWave = Math.max(this.bestWave, this.state.wave);
+      this.recordCurrentWave();
       this.announce("¡Base destruida!");
     }
   }
@@ -416,18 +463,13 @@ export class Game {
       if (this.enemies.some((enemy) => enemy.wave === wave)) continue;
       this.state.gold += waveRewardBonus(wave);
       this.wavesAwaitingClear.delete(wave);
+      this.progressRevision += awardExperience(this.progress, experienceForWave(this.level, wave));
+      this.recordCurrentWave(wave);
       this.announce(`Oleada ${wave} completada: +${waveRewardBonus(wave)} oro`);
     }
 
     if (this.state.phase !== "defending") return;
     if (!this.spawnQueueFinished || this.enemies.length > 0 || this.wavesAwaitingClear.size > 0) return;
-
-    if (this.state.wave >= VICTORY_WAVE) {
-      this.state.phase = "victory";
-      this.bestWave = Math.max(this.bestWave, this.state.wave);
-      this.announce("¡Victoria!");
-      return;
-    }
 
     this.state.wave += 1;
     this.state.phase = "build";

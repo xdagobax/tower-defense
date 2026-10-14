@@ -14,16 +14,16 @@ export function buildSpawnQueue(wave: number): QueuedSpawn[] {
   return queue;
 }
 
-export function createEnemy(id: number, kind: EnemyKind, wave: number): Enemy {
+export function createEnemy(id: number, kind: EnemyKind, wave: number, levelMultiplier = 1): Enemy {
   const def = ENEMIES[kind];
-  const hp = Math.round(def.hp * hpMultiplier(wave));
+  const hp = Math.round(def.hp * hpMultiplier(wave) * levelMultiplier);
   return {
     id,
     wave,
     kind,
     hp,
     maxHp: hp,
-    baseSpeed: def.speed * speedMultiplier(wave),
+    baseSpeed: def.speed * speedMultiplier(wave) * Math.min(1.8, levelMultiplier),
     reward: Math.round(def.reward * rewardMultiplier(wave)),
     armor: def.armor,
     size: def.size,
