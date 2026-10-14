@@ -161,9 +161,9 @@ export class Hud {
       const affordable = canAfford(state.gold, buildCost(kind));
       btn.disabled = !unlocked || !affordable;
       btn.classList.toggle("selected", state.selectedKind === kind && unlocked);
-      if (!unlocked) {
-        btn.innerHTML = `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>Oleada ${TOWERS[kind].unlockWave}</small>`;
-      }
+      btn.innerHTML = unlocked
+        ? `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>${TOWERS[kind].buildCost} oro</small>`
+        : `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>Oleada ${TOWERS[kind].unlockWave}</small>`;
     }
 
     this.startBtn.disabled = !this.game.canStartWave;
