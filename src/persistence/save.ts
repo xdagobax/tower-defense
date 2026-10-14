@@ -1,5 +1,6 @@
 import type { TowerKind } from "../config/towers";
 import { createPermanentProgress, type PermanentProgress } from "../config/progression";
+import { setMapLevel } from "../config/map";
 import type { Game } from "../game";
 
 const KEY = "tower-defense.save.v1";
@@ -38,6 +39,7 @@ export function loadIntoGame(game: Game): void {
       upgrades: p.upgrades && typeof p.upgrades === "object" ? p.upgrades : fresh.upgrades,
     };
     game.level = Math.min(game.progress.highestUnlockedLevel, Math.max(1, Math.floor(Number(data.level) || 1)));
+    setMapLevel(game.level);
   }
   if (!data.snapshot) return;
   const snap = data.snapshot;
