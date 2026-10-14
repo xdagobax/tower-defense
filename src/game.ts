@@ -9,6 +9,7 @@ import {
   TILE,
   TOTAL_PATH_LENGTH,
   cellCenter,
+  setMapLevel,
   isBuildable,
   type Vec,
 } from "./config/map";
@@ -55,7 +56,7 @@ export class Game {
   readonly tile = TILE;
   readonly spawn: Vec = SPAWN;
   readonly base: Vec = BASE;
-  readonly totalPathLength = TOTAL_PATH_LENGTH;
+  get totalPathLength(): number { return TOTAL_PATH_LENGTH; }
 
   state: GameState;
   level = 1;
@@ -192,6 +193,7 @@ export class Game {
   restart(): void {
     const best = this.bestWave;
     const level = this.level;
+    setMapLevel(level);
     this.state = {
       phase: "build",
       gold: this.startingGold(),
