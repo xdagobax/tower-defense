@@ -107,7 +107,7 @@ export class Hud {
 
   private buildPermanentButtons(): void {
     const ids: UpgradeId[] = ["startingGold", "killGold"];
-    for (const kind of TOWER_ORDER) ids.push(("damage:" + kind) as UpgradeId, ("fireRate:" + kind) as UpgradeId);
+    for (const kind of TOWER_ORDER) {\n      if (kind === "frost") continue;\n      ids.push(("damage:" + kind) as UpgradeId, ("fireRate:" + kind) as UpgradeId);\n    }
     for (const id of ids) {
       const btn = document.createElement("button");
       btn.dataset.upgrade = id;
@@ -239,11 +239,14 @@ export class Hud {
           ? "Nivel máximo"
           : `Mejora: ${nextCost} oro`;
 
+      const combatStats = tower.kind === "frost"
+        ? `<div class="row"><span>Ralentización</span><span>${Math.round((1 - (stats.slowFactor ?? 0.5)) * 100)}%</span></div>`
+        : `<div class="row"><span>Daño</span><span>${stats.damage}</span></div>
+           <div class="row"><span>Cadencia</span><span>${stats.fireRate}/s</span></div>`;
       this.selection.innerHTML = `
         <div class="label">${SYMBOLS[tower.kind]} ${def.name} · Nivel ${tower.level}</div>
-        <div class="row"><span>Daño</span><span>${stats.damage}</span></div>
+        ${combatStats}
         <div class="row"><span>Alcance</span><span>${Math.round(stats.range)}</span></div>
-        <div class="row"><span>Cadencia</span><span>${stats.fireRate}/s</span></div>
         <div class="actions"></div>
       `;
       const actions = this.selection.querySelector(".actions") as HTMLDivElement;
