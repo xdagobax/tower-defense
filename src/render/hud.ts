@@ -141,7 +141,13 @@ export class Hud {
     this.compactLives.textContent = String(state.lives);
     this.compactWave.textContent = String(state.wave);
     this.compactXp.textContent = String(this.game.progress.experience);
-    // Durante el juego activo ocultamos la navegación y las acciones secundarias.
+    // La navegación siempre está disponible fuera de Partida. Dentro de Partida,
+    // solo se muestra durante la pausa o antes de iniciar la primera oleada.
+    const activeTab = document.querySelector<HTMLButtonElement>("[data-tab][aria-selected=\"true\"]")?.dataset.tab ?? "home";
+    const showNavigation = activeTab !== "game" || state.paused || (state.phase === "build" && state.wave === 1) || state.phase === "gameover" || state.phase === "victory";
+    document.body.classList.toggle("navigation-hidden", !showNavigation);
+
+    // Los controles secundarios se ocultan durante la partida activa.
     const showSecondaryControls = state.paused || (state.phase === "build" && state.wave === 1) || state.phase === "gameover" || state.phase === "victory";
     document.body.classList.toggle("gameplay-focused", !showSecondaryControls);
 
