@@ -25,8 +25,11 @@ describe("waves", () => {
     expect(buildWave(6).groups.some((g) => g.kind === "boss")).toBe(false);
   });
 
-  it("el escalado de vida, velocidad y recompensa crece con la oleada", () => {
+  it("aumenta notablemente la vida de todos los enemigos con cada oleada", () => {
     expect(hpMultiplier(1)).toBe(1);
+    expect(hpMultiplier(2)).toBeCloseTo(1.15);
+    expect(hpMultiplier(5)).toBeCloseTo(1.15 ** 4);
+    expect(hpMultiplier(10)).toBeGreaterThan(3);
     expect(hpMultiplier(5)).toBeGreaterThan(hpMultiplier(1));
     expect(speedMultiplier(10)).toBeGreaterThan(speedMultiplier(1));
     expect(speedMultiplier(100)).toBeLessThanOrEqual(1.8);

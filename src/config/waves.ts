@@ -16,8 +16,11 @@ export interface WaveDef {
   totalEnemies: number;
 }
 
+// La resistencia crece de forma compuesta en cada oleada, no solo al introducir élites.
+export const WAVE_HP_GROWTH = 1.15;
+
 export function hpMultiplier(wave: number): number {
-  return Math.pow(1.10, Math.max(0, wave - 1));
+  return Math.pow(WAVE_HP_GROWTH, Math.max(0, Math.floor(wave) - 1));
 }
 
 export function speedMultiplier(wave: number): number {
