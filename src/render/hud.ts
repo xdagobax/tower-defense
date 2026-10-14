@@ -72,7 +72,10 @@ export class Hud {
     this.speedBtn.addEventListener("click", () => this.handlers.onToggleSpeed());
     this.restartBtn.addEventListener("click", () => this.handlers.onRestart());
     this.newGameBtn.addEventListener("click", () => this.handlers.onNewGame());
-    this.levelSelect.addEventListener("change", () => this.handlers.onSelectLevel(Number(this.levelSelect.value)));
+    this.levelSelect.addEventListener("change", () => {
+      this.handlers.onSelectLevel(Number(this.levelSelect.value));
+      this.activateTab("game");
+    });
     this.buildPermanentButtons();
     document.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((button) => {
       button.addEventListener("click", () => this.activateTab(button.dataset.tab ?? "home"));

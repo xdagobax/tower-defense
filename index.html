@@ -133,6 +133,9 @@
             <button id="btn-restart">Reiniciar nivel</button>
           </div>
           <p class="hint">Puedes llamar la siguiente oleada cuando termine de aparecer la actual. Si la llamas dentro de la ventana de bonificación, obtienes oro extra.</p>
+          <button id="btn-orientation" type="button">Pantalla horizontal</button>
+          <div id="orientation-status" class="hint" aria-live="polite"></div>
+          <p class="hint">Toca el tablero para colocar torretas. Toca una torreta para seleccionarla. Teclas: 1-5 elegir, espacio oleada, P pausa, F velocidad.</p>
         </section>
         <section class="tab-panel" id="panel-upgrades" role="tabpanel" aria-labelledby="tab-upgrades" hidden>
           <div class="panel">
@@ -142,14 +145,8 @@
           </div>
         </section>
         <div id="message" role="status" aria-live="polite"></div>
-        <button id="btn-orientation" type="button">Pantalla horizontal</button>
-        <div id="orientation-status" class="hint" aria-live="polite"></div>
-        <div class="hint">
-          Toca el tablero para colocar torretas. Toca una torreta para seleccionarla y mejorarla.
-          Cuando termine la aparición de enemigos puedes llamar la siguiente oleada sin esperar a eliminarlos.
-          Hay 12 segundos para ganar oro extra (1 por segundo); después puedes llamarla sin bonus.
-          Teclas: 1-5 elegir, espacio oleada, P pausa, F velocidad.
-        </div>
+
+
       </aside>
     </div>
     <script>
