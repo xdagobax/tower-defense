@@ -173,15 +173,20 @@ export class Hud {
     this.pauseBtn.textContent = state.paused ? "Reanudar" : "Pausa";
     this.speedBtn.textContent = `Velocidad x${state.speed}`;
 
-    if (this.renderedLevelCount !== this.game.progress.highestUnlockedLevel) {
+    // Mostrar niveles futuros bloqueados para que la progresión sea visible sin permitir saltárselos.
+    const visibleLevelCount = this.game.progress.highestUnlockedLevel + 9;
+    if (this.renderedLevelCount !== visibleLevelCount) {
       this.levelSelect.innerHTML = "";
-      for (let level = 1; level <= this.game.progress.highestUnlockedLevel; level++) {
+      for (let level = 1; level <= visibleLevelCount; level++) {
         const option = document.createElement("option");
         option.value = String(level);
-        option.textContent = "Nivel " + level;
+        option.disabled = level > this.game.progress.highestUnlockedLevel;
+        option.textContent = level > this.game.progress.highestUnlockedLevel
+          ? `🔒 Nivel ${level} · supera el anterior`
+          : "Nivel " + level;
         this.levelSelect.appendChild(option);
       }
-      this.renderedLevelCount = this.game.progress.highestUnlockedLevel;
+      this.renderedLevelCount = visibleLevelCount;
     }
     if (this.levelSelect.value !== String(this.game.level)) this.levelSelect.value = String(this.game.level);
     this.levelStatus.textContent = "Récord: " + (this.game.progress.bestWaveByLevel[this.game.level] ?? 0) + ". Meta: oleada " + (10 + (this.game.level - 1) * 5) + "; puedes seguir jugando después."; 
