@@ -59,7 +59,7 @@ export const TOWERS: Record<TowerKind, TowerDef> = {
     kind: "frost",
     name: "Escarcha",
     shape: "circle",
-    description: "Ralentiza a los enemigos con poco daño.",
+    description: "Ralentiza continuamente a los enemigos dentro de su alcance; no causa daño.",
     buildCost: 70,
     upgradeCosts: [60, 110],
     unlockWave: 3,

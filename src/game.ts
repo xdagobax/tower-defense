@@ -20,7 +20,7 @@ import {
   waveRewardBonus,
 } from "./config/waves";
 import type { Enemy, GameState, Projectile, QueuedSpawn, Tower } from "./state";
-import { applyHit } from "./systems/combat";
+import { applyFrostAura, applyHit } from "./systems/combat";
 import { buildCost, canAfford, sellValue, upgradeCost } from "./systems/economy";
 import { advanceEnemy } from "./systems/movement";
 import { buildSpawnQueue, createEnemy } from "./systems/spawn";
@@ -322,6 +322,17 @@ export class Game {
     for (const tower of this.towers) {
       tower.cooldown -= dt;
       const stats = this.effectiveTowerStats(tower.kind, tower.level);
+      if (tower.kind === "frost") {
+        applyFrostAura(
+          this.enemies,
+          towerPosition(tower),
+          stats.range,
+          stats.slowFactor ?? 0.5,
+          Math.max(dt * 2, 0.05),
+        );
+        tower.cooldown = 0;
+        continue;
+      }
       if (tower.cooldown > 0) continue;
       const target = findTarget(tower, stats, this.enemies);
       if (!target) continue;

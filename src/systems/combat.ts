@@ -1,4 +1,4 @@
-import { positionAtDistance } from "../config/map";
+import { positionAtDistance, type Vec } from "../config/map";
 import type { Enemy } from "../state";
 import { applySlow } from "./movement";
 import { findEnemiesInRadius } from "./targeting";
@@ -57,4 +57,19 @@ export function applyHit(
   }
 
   return { killed, affected };
+}
+
+
+export function applyFrostAura(
+  enemies: Enemy[],
+  origin: Vec,
+  range: number,
+  slowFactor: number,
+  slowDuration: number,
+): Enemy[] {
+  const affected = findEnemiesInRadius(enemies, origin, range);
+  for (const enemy of affected) {
+    applySlow(enemy, slowFactor, slowDuration);
+  }
+  return affected;
 }
