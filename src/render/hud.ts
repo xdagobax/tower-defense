@@ -2,6 +2,7 @@ import { TOWERS, TOWER_ORDER, MAX_TOWER_LEVEL, type TowerKind } from "../config/
 import type { Game } from "../game";
 import { buildCost, canAfford, sellValue, upgradeCost } from "../systems/economy";
 import { upgradeCost as permanentUpgradeCost, type UpgradeId } from "../config/progression";
+import { upgradeCost as permanentUpgradeCost, type UpgradeId } from "../config/progression";
 
 const SYMBOLS: Record<TowerKind, string> = {
   arrow: "▲",
@@ -24,6 +25,9 @@ export interface HudHandlers {
   onTogglePause(): void;
   onToggleSpeed(): void;
   onRestart(): void;
+  onNewGame(): void;
+  onSelectLevel(level: number): void;
+  onPurchaseUpgrade(id: UpgradeId): void;
   onNewGame(): void;
   onSelectLevel(level: number): void;
   onPurchaseUpgrade(id: UpgradeId): void;
@@ -55,6 +59,13 @@ export class Hud {
   private readonly permanentList = must("permanent-upgrades");
   private readonly newGameBtn = must<HTMLButtonElement>("btn-new-game");
   private readonly permanentButtons = new Map<UpgradeId, HTMLButtonElement>();
+  private renderedLevelCount = 0;
+  private readonly levelSelect = must<HTMLSelectElement>("level-select");
+  private readonly levelStatus = must("level-status");
+  private readonly xpCount = must("xp-count");
+  private readonly permanentList = must("permanent-upgrades");
+  private readonly newGameBtn = must<HTMLButtonElement>("btn-new-game");
+  private readonly permanentButtons = new Map<UpgradeId, HTMLButtonElement>();
 
   private readonly towerButtons = new Map<TowerKind, HTMLButtonElement>();
   // Keep action buttons mounted between frames; recreating them every frame
@@ -73,6 +84,21 @@ export class Hud {
     this.newGameBtn.addEventListener("click", () => this.handlers.onNewGame());
     this.levelSelect.addEventListener("change", () => this.handlers.onSelectLevel(Number(this.levelSelect.value)));
     this.buildPermanentButtons();
+    this.newGameBtn.addEventListener("click", () => this.handlers.onNewGame());
+    this.levelSelect.addEventListener("change", () => this.handlers.onSelectLevel(Number(this.levelSelect.value)));
+    this.buildPermanentButtons();
+  }
+
+  private buildPermanentButtons(): void {
+    const ids: UpgradeId[] = ["startingGold", "killGold"];
+    for (const kind of TOWER_ORDER) ids.push(("damage:" + kind) as UpgradeId, ("fireRate:" + kind) as UpgradeId);
+    for (const id of ids) {
+      const btn = document.createElement("button");
+      btn.dataset.upgrade = id;
+      btn.addEventListener("click", () => this.handlers.onPurchaseUpgrade(id));
+      this.permanentList.appendChild(btn);
+      this.permanentButtons.set(id, btn);
+    }
   }
 
   private buildPermanentButtons(): void {
@@ -144,6 +170,28 @@ export class Hud {
       this.levelSelect.appendChild(option);
     }
     this.levelSelect.value = String(this.game.level);
+    this.levelStatus.textContent = "Récord: " + (this.game.progress.bestWaveByLevel[this.game.level] ?? 0) + ". Meta: oleada " + (10 + (this.game.level - 1) * 5) + "; puedes seguir jugando después."; 
+    this.xpCount.textContent = String(this.game.progress.experience);
+    for (const [id, btn] of this.permanentButtons) {
+      const count = this.game.progress.upgrades[id] ?? 0;
+      const labels: Record<string, string> = { startingGold: "Oro inicial", killGold: "Oro por enemigo" };
+      const parts = id.split(":");
+      const name = labels[id] ?? ((parts[0] === "damage" ? "Daño" : "Cadencia") + " · " + (TOWERS[parts[1] as TowerKind]?.name ?? parts[1]));
+      const cost = permanentUpgradeCost(id, count);
+      btn.textContent = count >= 10 ? name + ": máximo" : name + ": nivel " + count + " · " + cost + " XP";
+      btn.disabled = count >= 10 || this.game.progress.experience < cost;
+    }
+    if (this.renderedLevelCount !== this.game.progress.highestUnlockedLevel) {
+      this.levelSelect.innerHTML = "";
+      for (let level = 1; level <= this.game.progress.highestUnlockedLevel; level++) {
+        const option = document.createElement("option");
+        option.value = String(level);
+        option.textContent = "Nivel " + level;
+        this.levelSelect.appendChild(option);
+      }
+      this.renderedLevelCount = this.game.progress.highestUnlockedLevel;
+    }
+    if (this.levelSelect.value !== String(this.game.level)) this.levelSelect.value = String(this.game.level);
     this.levelStatus.textContent = "Récord: " + (this.game.progress.bestWaveByLevel[this.game.level] ?? 0) + ". Meta: oleada " + (10 + (this.game.level - 1) * 5) + "; puedes seguir jugando después."; 
     this.xpCount.textContent = String(this.game.progress.experience);
     for (const [id, btn] of this.permanentButtons) {
