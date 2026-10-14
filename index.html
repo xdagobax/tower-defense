@@ -31,9 +31,20 @@
       .stats b { font-size: 15px; }
       .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
       .tower-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-      .permanent-list { display: grid; grid-template-columns: 1fr; gap: 5px; }
-      .permanent-list button { font-size: 11px; }
-      select { font: inherit; width: 100%; padding: 8px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); margin-bottom: 6px; }
+      .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+      .tab-button { text-align: center; padding: 10px 4px; font-weight: bold; }
+      .tab-button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+      .tab-panel[hidden] { display: none !important; }
+      .tab-panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+      .permanent-list { display: grid; grid-template-columns: 1fr; gap: 6px; }
+      .permanent-list button { font-size: 12px; }
+      select { font: inherit; width: 100%; padding: 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); margin: 4px 0 8px; min-height: 42px; }
+      .field-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-top: 10px; }
+      .home-summary { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+      .danger-action { width: 100%; text-align: center; }
+      .upgrade-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .upgrade-heading .label { margin-bottom: 0; }
+      .xp-balance { border: 1px solid var(--ink); padding: 5px 8px; font-weight: bold; white-space: nowrap; }
       button {
         font-family: inherit; font-size: 12px; background: var(--paper); color: var(--ink);
         border: 2px solid var(--ink); padding: 8px; cursor: pointer; text-align: left;
@@ -64,6 +75,7 @@
           max-height: calc(100svh - 16px); min-width: 0;
         }
         #hud { flex: 0 0 252px; width: 252px; max-height: calc(100svh - 16px); overflow-y: auto; }
+        .panel { padding: 7px; }
         h1 { font-size: 14px; }
         .hint { font-size: 9px; }
       }
@@ -77,6 +89,7 @@
         .stats b { font-size: 16px; }
         button { font-size: 13px; min-height: 42px; padding: 9px; }
         .hint { font-size: 11px; }
+        .tab-button { min-height: 44px; }
       }
     </style>
   </head>
@@ -92,23 +105,45 @@
           <div>Experiencia</div><div><b id="xp-count">0</b></div>
           <div>Estado</div><div><b id="stat-phase">-</b></div>
         </div>
-        <div class="panel">
-          <div class="label">Torretas</div>
-          <div class="tower-list" id="tower-list"></div>
-        </div>
-        <div class="panel"><div class="label">Seleccionar nivel</div><select id="level-select" aria-label="Seleccionar nivel"></select><div id="level-status" class="hint"></div></div>
-        <div class="panel"><div class="label">Mejoras permanentes (XP)</div><div id="permanent-upgrades" class="permanent-list"></div></div>
-        <div class="panel" id="selection"></div>
-        <div class="controls">
-          <button id="btn-start">Iniciar oleada</button>
-          <button id="btn-pause">Pausa</button>
-          <button id="btn-speed">Velocidad x1</button>
-          <button id="btn-restart">Reiniciar nivel</button>
-          <button id="btn-new-game">Juego nuevo</button>
-        </div>
+        <nav class="tabs" role="tablist" aria-label="Secciones del juego">
+          <button class="tab-button" type="button" role="tab" id="tab-home" data-tab="home" aria-controls="panel-home" aria-selected="true">Inicio</button>
+          <button class="tab-button" type="button" role="tab" id="tab-game" data-tab="game" aria-controls="panel-game" aria-selected="false">Partida</button>
+          <button class="tab-button" type="button" role="tab" id="tab-upgrades" data-tab="upgrades" aria-controls="panel-upgrades" aria-selected="false">Mejoras</button>
+        </nav>
+        <section class="tab-panel" id="panel-home" role="tabpanel" aria-labelledby="tab-home">
+          <div class="panel">
+            <div class="label">Continuar o elegir nivel</div>
+            <div class="home-summary" id="level-status">Selecciona un nivel para jugar.</div>
+            <label class="field-label" for="level-select">Nivel disponible</label>
+            <select id="level-select" aria-label="Seleccionar nivel"></select>
+            <button id="btn-new-game" class="danger-action" type="button">Juego nuevo</button>
+            <p class="hint">El juego nuevo borra la experiencia, mejoras y niveles desbloqueados. Para conservar tu progreso, elige un nivel o reinicia la partida.</p>
+          </div>
+        </section>
+        <section class="tab-panel" id="panel-game" role="tabpanel" aria-labelledby="tab-game" hidden>
+          <div class="panel">
+            <div class="label">Construir torretas</div>
+            <div class="tower-list" id="tower-list"></div>
+          </div>
+          <div class="panel" id="selection"><div class="label">Sin selección</div><div class="hint">Toca una torreta del tablero para ver sus opciones.</div></div>
+          <div class="controls">
+            <button id="btn-start">Iniciar oleada</button>
+            <button id="btn-pause">Pausa</button>
+            <button id="btn-speed">Velocidad x1</button>
+            <button id="btn-restart">Reiniciar nivel</button>
+          </div>
+          <p class="hint">Puedes llamar la siguiente oleada cuando termine de aparecer la actual. Si la llamas dentro de la ventana de bonificación, obtienes oro extra.</p>
+        </section>
+        <section class="tab-panel" id="panel-upgrades" role="tabpanel" aria-labelledby="tab-upgrades" hidden>
+          <div class="panel">
+            <div class="upgrade-heading"><div class="label">Mejoras permanentes</div><div class="xp-balance"><span id="upgrade-xp-count">0</span> XP</div></div>
+            <p class="hint">Compra mejoras con experiencia. Los cambios se conservan al reiniciar un nivel.</p>
+            <div id="permanent-upgrades" class="permanent-list"></div>
+          </div>
+        </section>
+        <div id="message" role="status" aria-live="polite"></div>
         <button id="btn-orientation" type="button">Pantalla horizontal</button>
         <div id="orientation-status" class="hint" aria-live="polite"></div>
-        <div id="message"></div>
         <div class="hint">
           Toca el tablero para colocar torretas. Toca una torreta para seleccionarla y mejorarla.
           Cuando termine la aparición de enemigos puedes llamar la siguiente oleada sin esperar a eliminarlos.
