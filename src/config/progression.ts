@@ -2,7 +2,7 @@ import type { TowerKind } from "./towers";
 
 export const FIRST_LEVEL_TARGET_WAVE = 10;
 export const WAVES_PER_LEVEL = 5;
-export const LEVEL_DIFFICULTY_STEP = 0.12;
+export const LEVEL_DIFFICULTY_GROWTH = 1.4;
 export const LEVEL_EXPERIENCE_STEP = 0.35;
 export const EARLY_WAVE_EXPERIENCE_FACTOR = 0.25;
 export const UPGRADE_COST_BASE = 100;
@@ -29,7 +29,7 @@ export function levelTargetWave(level: number): number {
 }
 
 export function levelDifficultyMultiplier(level: number): number {
-  return 1 + (Math.max(1, Math.floor(level)) - 1) * LEVEL_DIFFICULTY_STEP;
+  return Math.pow(LEVEL_DIFFICULTY_GROWTH, Math.max(0, Math.floor(level) - 1));
 }
 
 export function experienceForKill(level: number, wave: number, base = 1): number {
