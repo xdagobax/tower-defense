@@ -16,9 +16,11 @@ describe("permanent progression rules", () => {
     expect(levelTargetWave(2)).toBe(15);
     expect(levelTargetWave(100)).toBe(505);
   });
-  it("increases difficulty without a fixed maximum level", () => {
+  it("makes each new level substantially harder", () => {
     expect(levelDifficultyMultiplier(1)).toBe(1);
-    expect(levelDifficultyMultiplier(2)).toBeGreaterThan(levelDifficultyMultiplier(1));
+    expect(levelDifficultyMultiplier(2)).toBeCloseTo(1.4);
+    expect(levelDifficultyMultiplier(3)).toBeCloseTo(1.96);
+    expect(levelDifficultyMultiplier(5)).toBeGreaterThan(3);
     expect(levelDifficultyMultiplier(100)).toBeGreaterThan(levelDifficultyMultiplier(10));
   });
   it("pays very little experience in the earliest waves", () => {
