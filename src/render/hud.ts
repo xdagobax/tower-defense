@@ -9,6 +9,7 @@ const SYMBOLS: Record<TowerKind, string> = {
   frost: "●",
   sniper: "◆",
   tesla: "⬢",
+  siege: "⬟",
 };
 
 const PHASE_LABELS: Record<string, string> = {
