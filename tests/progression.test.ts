@@ -67,7 +67,7 @@ describe("permanent progression rules", () => {
     expect(upgradeMultiplier(1)).toBe(1.03);
     expect(upgradeMultiplier(10)).toBe(1.3);
     expect(upgradeMultiplier(11)).toBe(1.35);
-    expect(upgradeMultiplier(12)).toBe(1.4);
+    expect(upgradeMultiplier(12)).toBeCloseTo(1.4, 10);
     expect(upgradeMultiplier(100)).toBe(5.8);
   });
   it("allows permanent upgrades beyond level ten while their cost keeps increasing", () => {
