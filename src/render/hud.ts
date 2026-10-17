@@ -170,14 +170,9 @@ export class Hud {
       const affordable = canAfford(state.gold, buildCost(kind));
       btn.disabled = !unlocked || !affordable;
       btn.classList.toggle("selected", state.selectedKind === kind && unlocked);
-      const damageLevel = this.game.progress.upgrades[`damage:${kind}`] ?? 0;
-      const fireRateLevel = this.game.progress.upgrades[`fireRate:${kind}`] ?? 0;
-      const bonusText = kind === "frost"
-        ? `Ralentización ${Math.round((1 - (TOWERS[kind].levels[0].slowFactor ?? 0.5)) * 100)}% · sin mejora permanente`
-        : `Daño +${upgradePercent(damageLevel)}% · cadencia +${upgradePercent(fireRateLevel)}%`;
       btn.innerHTML = unlocked
-        ? `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>${TOWERS[kind].buildCost} oro · ${bonusText}</small>`
-        : `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>Oleada ${TOWERS[kind].unlockWave} · ${bonusText}</small>`;
+        ? `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>${TOWERS[kind].buildCost} oro</small>`
+        : `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>Oleada ${TOWERS[kind].unlockWave}</small>`;
     }
 
     this.startBtn.disabled = !this.game.canStartWave;
