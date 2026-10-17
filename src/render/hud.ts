@@ -231,6 +231,13 @@ export class Hud {
 
     if (!tower) {
       const kind = state.selectedKind;
+      if (!kind) {
+        if (this.renderedSelectionKey !== "none") {
+          this.selection.innerHTML = '<div class="hint">Selecciona una torre o elige una para construir.</div>';
+          this.renderedSelectionKey = "none";
+        }
+        return;
+      }
       const def = TOWERS[kind];
       const stats = towerStats(kind, 1);
       const damageLevel = this.game.progress.upgrades[`damage:${kind}`] ?? 0;
