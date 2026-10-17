@@ -302,7 +302,9 @@ export class Hud {
       overloadGroup.className = "overload-actions";
 
       const buyChargeBtn = document.createElement("button");
+      buyChargeBtn.type = "button";
       buyChargeBtn.dataset.action = "buy-overload-charge";
+      buyChargeBtn.className = "overload-charge-link";
       buyChargeBtn.addEventListener("click", () => this.handlers.onBuyOverloadCharge());
 
       overloadGroup.append(overloadBtn, buyChargeBtn);
@@ -325,7 +327,7 @@ export class Hud {
     }
     if (sellBtn) sellBtn.textContent = `Vender ${sold}`;
     if (buyChargeBtn) {
-      buyChargeBtn.textContent = `+25% · ${this.game.overloadChargePurchaseCost} oro`;
+      buyChargeBtn.textContent = `+25% de carga · ${this.game.overloadChargePurchaseCost} oro`;
       buyChargeBtn.disabled =
         state.paused ||
         state.phase !== "defending" ||
