@@ -8,7 +8,8 @@ export const EARLY_WAVE_EXPERIENCE_FACTOR = 0.25;
 export const UPGRADE_COST_BASE = 100;
 export const UPGRADE_COST_GROWTH = 1.5;
 export const UPGRADE_EFFECT_STEP = 0.03;
-export const MAX_UPGRADE_EFFECT = 0.30;
+export const UPGRADE_SOFT_CAP_LEVEL = 10;
+export const UPGRADE_EFFECT_STEP_AFTER_CAP = 0.05;
 
 export type UpgradeKind = "damage" | "fireRate" | "startingGold" | "killGold";
 export type UpgradeId = UpgradeKind | `damage:${TowerKind}` | `fireRate:${TowerKind}`;
@@ -55,7 +56,10 @@ export function upgradeCost(id: UpgradeId, currentLevel: number, base = UPGRADE_
 }
 
 export function upgradeMultiplier(level: number): number {
-  return 1 + Math.min(MAX_UPGRADE_EFFECT, Math.max(0, Math.floor(level)) * UPGRADE_EFFECT_STEP);
+  const safeLevel = Math.max(0, Math.floor(level));
+  const initialLevels = Math.min(safeLevel, UPGRADE_SOFT_CAP_LEVEL);
+  const extraLevels = Math.max(0, safeLevel - UPGRADE_SOFT_CAP_LEVEL);
+  return 1 + initialLevels * UPGRADE_EFFECT_STEP + extraLevels * UPGRADE_EFFECT_STEP_AFTER_CAP;
 }
 
 export function canPurchaseUpgrade(progress: PermanentProgress, id: UpgradeId, base?: number): boolean {
