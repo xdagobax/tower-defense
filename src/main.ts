@@ -62,6 +62,10 @@ const hud = new Hud(game, {
   onOverload() {
     game.activateOverload();
   },
+  onBuyOverloadCharge() {
+    game.purchaseOverloadCharge();
+    persistGame(game);
+  },
 });
 
 attachInput(canvas, game, renderer, () => persistGame(game));
