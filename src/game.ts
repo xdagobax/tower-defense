@@ -81,6 +81,7 @@ export class Game {
   private overloadRemaining = 0;
   private readonly overloadDuration = 6;
   private readonly overloadChargeSeconds = 45;
+  private overloadChargePurchases = 0;
   private readonly wavesAwaitingClear = new Set<number>();
   private nextEnemyId = 1;
   private nextTowerId = 1;
@@ -229,6 +230,7 @@ export class Game {
     this.overloadCharge = 0;
     this.overloadedTowerId = null;
     this.overloadRemaining = 0;
+    this.overloadChargePurchases = 0;
     this.wavesAwaitingClear.clear();
     this.nextEnemyId = 1;
     this.nextTowerId = 1;
@@ -263,6 +265,31 @@ export class Game {
 
   get overloadTimeRemaining(): number {
     return this.overloadRemaining;
+  }
+
+  get overloadChargePurchaseAmount(): number {
+    return 0.25;
+  }
+
+  get overloadChargePurchaseCost(): number {
+    return Math.ceil(50 * Math.pow(1.75, this.overloadChargePurchases));
+  }
+
+  purchaseOverloadCharge(): boolean {
+    const cost = this.overloadChargePurchaseCost;
+    if (
+      this.state.paused ||
+      this.state.phase !== "defending" ||
+      this.overloadCharge >= 1 ||
+      this.overloadedTowerId !== null ||
+      !this.enemies.some((enemy) => enemy.alive && !enemy.reachedBase) ||
+      this.state.gold < cost
+    ) return false;
+    this.state.gold -= cost;
+    this.overloadCharge = Math.min(1, this.overloadCharge + this.overloadChargePurchaseAmount);
+    this.overloadChargePurchases++;
+    this.announce(`Compraste carga de sobrecarga por ${cost} oro`);
+    return true;
   }
 
   activateOverload(): boolean {
@@ -319,7 +346,10 @@ export class Game {
       if (this.overloadRemaining === 0 || !this.towers.some((tower) => tower.id === this.overloadedTowerId)) {
         this.overloadedTowerId = null;
       }
-    } else {
+    } else if (
+      this.state.phase === "defending" &&
+      this.enemies.some((enemy) => enemy.alive && !enemy.reachedBase)
+    ) {
       this.overloadCharge = Math.min(1, this.overloadCharge + sdt / this.overloadChargeSeconds);
     }
     this.updateSpawning(sdt);
