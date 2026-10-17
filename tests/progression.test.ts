@@ -61,10 +61,22 @@ describe("permanent progression rules", () => {
     expect(progress.experience).toBe(150);
     expect(progress.upgrades["fireRate:sniper"]).toBe(1);
   });
-  it("caps permanent combat bonuses so they remain conservative", () => {
+  it("keeps the first ten upgrades at 3% each and adds 5% per upgrade after that", () => {
+    expect(upgradeMultiplier(0)).toBe(1);
     expect(upgradeMultiplier(1)).toBe(1.03);
     expect(upgradeMultiplier(10)).toBe(1.3);
-    expect(upgradeMultiplier(100)).toBe(1.3);
+    expect(upgradeMultiplier(11)).toBe(1.35);
+    expect(upgradeMultiplier(12)).toBe(1.4);
+    expect(upgradeMultiplier(100)).toBe(5.8);
+  });
+  it("allows permanent upgrades beyond level ten while their cost keeps increasing", () => {
+    const progress = createPermanentProgress();
+    progress.experience = 1_000_000_000;
+    progress.upgrades["damage:arrow"] = 10;
+    expect(upgradeCost("damage:arrow", 10)).toBeGreaterThan(upgradeCost("damage:arrow", 9));
+    expect(purchaseUpgrade(progress, "damage:arrow")).toBe(true);
+    expect(progress.upgrades["damage:arrow"]).toBe(11);
+    expect(upgradeMultiplier(progress.upgrades["damage:arrow"] ?? 0)).toBe(1.35);
   });
   it("unlocks the next level only after reaching the current target", () => {
     const progress = createPermanentProgress();
