@@ -94,6 +94,7 @@ export class Renderer {
       const selected = this.game.state.selectedTowerId === tower.id;
       if (selected) this.drawRange(tower);
       this.drawTower(tower, selected);
+      if (this.game.activeOverloadTowerId === tower.id) this.drawOverloadEffect(tower);
     }
   }
 
@@ -107,6 +108,25 @@ export class Renderer {
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(center.x, center.y, stats.range, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawOverloadEffect(tower: Tower): void {
+    const ctx = this.ctx;
+    const center = towerPosition(tower);
+    const pulse = 1 + Math.sin(this.game.overloadTimeRemaining * 8) * 0.08;
+    ctx.save();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, TILE * 0.62 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, TILE * 0.78 * pulse, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
