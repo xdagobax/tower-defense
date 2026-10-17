@@ -30,6 +30,7 @@ export interface HudHandlers {
   onUpgrade(): void;
   onSell(): void;
   onOverload(): void;
+  onBuyOverloadCharge(): void;
 }
 
 function formatStat(value: number): string {
@@ -297,22 +298,43 @@ export class Hud {
       overloadBtn.dataset.action = "overload";
       overloadBtn.addEventListener("click", () => this.handlers.onOverload());
 
+      const overloadGroup = document.createElement("div");
+      overloadGroup.className = "overload-actions";
+
+      const buyChargeBtn = document.createElement("button");
+      buyChargeBtn.dataset.action = "buy-overload-charge";
+      buyChargeBtn.addEventListener("click", () => this.handlers.onBuyOverloadCharge());
+
+      overloadGroup.append(overloadBtn, buyChargeBtn);
+
       const sellBtn = document.createElement("button");
       sellBtn.dataset.action = "sell";
       sellBtn.addEventListener("click", () => this.handlers.onSell());
 
-      actions.append(upgradeBtn, overloadBtn, sellBtn);
+      actions.append(upgradeBtn, overloadGroup, sellBtn);
       this.renderedSelectionKey = selectionKey;
     }
 
     const upgradeBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="upgrade"]');
     const sellBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="sell"]');
     const overloadBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="overload"]');
+    const buyChargeBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="buy-overload-charge"]');
     if (upgradeBtn) {
       upgradeBtn.disabled =
         tower.level >= MAX_TOWER_LEVEL || !canAfford(state.gold, nextCost ?? Infinity);
     }
     if (sellBtn) sellBtn.textContent = `Vender ${sold}`;
+    if (buyChargeBtn) {
+      buyChargeBtn.textContent = `+25% · ${this.game.overloadChargePurchaseCost} oro`;
+      buyChargeBtn.disabled =
+        state.paused ||
+        state.phase !== "defending" ||
+        this.game.overloadChargeRatio >= 1 ||
+        this.game.activeOverloadTowerId !== null ||
+        !this.game.enemies.some((enemy) => enemy.alive && !enemy.reachedBase) ||
+        state.gold < this.game.overloadChargePurchaseCost;
+      buyChargeBtn.title = "Compra 25% de carga. El precio aumenta con cada compra durante esta partida.";
+    }
     if (overloadBtn) {
       const active = this.game.activeOverloadTowerId === tower.id;
       const anotherActive = this.game.activeOverloadTowerId !== null && !active;
