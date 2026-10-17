@@ -144,7 +144,7 @@ export class Renderer {
     ctx.strokeRect(center.x - TILE / 2 + 3, center.y - TILE / 2 + 3, TILE - 6, TILE - 6);
 
     ctx.save();
-    if (tower.kind === "arrow" || tower.kind === "sniper") {
+    if (tower.kind === "arrow" || tower.kind === "sniper" || tower.kind === "siege") {
       ctx.translate(center.x, center.y);
       ctx.rotate(tower.angle);
       ctx.translate(-center.x, -center.y);
@@ -234,7 +234,9 @@ export class Renderer {
     ctx.fillStyle = INK;
     for (const projectile of this.game.projectiles) {
       ctx.beginPath();
-      if (projectile.kind === "cannon") {
+      if (projectile.kind === "siege") {
+        ctx.arc(projectile.x, projectile.y, 6, 0, Math.PI * 2);
+      } else if (projectile.kind === "cannon") {
         ctx.arc(projectile.x, projectile.y, 4, 0, Math.PI * 2);
       } else if (projectile.kind === "frost") {
         ctx.arc(projectile.x, projectile.y, 3.5, 0, Math.PI * 2);
