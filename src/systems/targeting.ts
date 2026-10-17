@@ -26,7 +26,7 @@ export function findTarget(tower: Tower, stats: TowerStats, enemies: Enemy[]): E
     const dy = pos.y - origin.y;
     if (dx * dx + dy * dy > rangeSq) continue;
 
-    if (tower.kind === "sniper") {
+    if (tower.kind === "sniper" || tower.kind === "siege") {
       if (
         best === null ||
         enemy.hp > best.hp ||
