@@ -64,6 +64,7 @@ describe("tower overload", () => {
   it("stops the overload if its tower is sold", () => {
     const game = new Game();
     expect(game.placeTower(1, 1, "arrow")).toBe(true);
+    prepareCombat(game);
     const tower = game.towers[0];
     game.state.selectedTowerId = tower.id;
     game.update(45);
