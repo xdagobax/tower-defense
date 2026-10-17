@@ -1,7 +1,7 @@
-import { TOWERS, TOWER_ORDER, MAX_TOWER_LEVEL, type TowerKind } from "../config/towers";
+import { TOWERS, TOWER_ORDER, MAX_TOWER_LEVEL, towerStats, type TowerKind } from "../config/towers";
 import type { Game } from "../game";
 import { buildCost, canAfford, sellValue, upgradeCost } from "../systems/economy";
-import { upgradeCost as permanentUpgradeCost, type UpgradeId } from "../config/progression";
+import { upgradeCost as permanentUpgradeCost, upgradeMultiplier, type UpgradeId } from "../config/progression";
 
 const SYMBOLS: Record<TowerKind, string> = {
   arrow: "▲",
@@ -30,6 +30,14 @@ export interface HudHandlers {
   onUpgrade(): void;
   onSell(): void;
   onOverload(): void;
+}
+
+function formatStat(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function upgradePercent(level: number): number {
+  return Math.round((upgradeMultiplier(level) - 1) * 100);
 }
 
 function must<T extends HTMLElement>(id: string): T {
@@ -162,9 +170,14 @@ export class Hud {
       const affordable = canAfford(state.gold, buildCost(kind));
       btn.disabled = !unlocked || !affordable;
       btn.classList.toggle("selected", state.selectedKind === kind && unlocked);
+      const damageLevel = this.game.progress.upgrades[`damage:${kind}`] ?? 0;
+      const fireRateLevel = this.game.progress.upgrades[`fireRate:${kind}`] ?? 0;
+      const bonusText = kind === "frost"
+        ? `Ralentización ${Math.round((1 - (TOWERS[kind].levels[0].slowFactor ?? 0.5)) * 100)}% · sin mejora permanente`
+        : `Daño +${upgradePercent(damageLevel)}% · cadencia +${upgradePercent(fireRateLevel)}%`;
       btn.innerHTML = unlocked
-        ? `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>${TOWERS[kind].buildCost} oro</small>`
-        : `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>Oleada ${TOWERS[kind].unlockWave}</small>`;
+        ? `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>${TOWERS[kind].buildCost} oro · ${bonusText}</small>`
+        : `${SYMBOLS[kind]} ${TOWERS[kind].name}<br><small>Oleada ${TOWERS[kind].unlockWave} · ${bonusText}</small>`;
     }
 
     this.startBtn.disabled = !this.game.canStartWave;
@@ -209,8 +222,9 @@ export class Hud {
       const parts = id.split(":");
       const name = labels[id] ?? ((parts[0] === "damage" ? "Daño" : "Cadencia") + " · " + (TOWERS[parts[1] as TowerKind]?.name ?? parts[1]));
       const cost = permanentUpgradeCost(id, count);
-      btn.textContent = count >= 10 ? name + ": máximo" : name + ": nivel " + count + " · " + cost + " XP";
-      btn.disabled = count >= 10 || this.game.progress.experience < cost;
+      const effect = upgradePercent(count);
+      btn.textContent = name + ": nivel " + count + " · +" + effect + "% · " + cost + " XP";
+      btn.disabled = this.game.progress.experience < cost;
     }
     this.updateSelection();
     this.message.textContent = this.game.messages[this.game.messages.length - 1] ?? "";
@@ -221,18 +235,35 @@ export class Hud {
     const tower = this.game.towers.find((t) => t.id === state.selectedTowerId);
 
     if (!tower) {
-      if (this.renderedSelectionKey !== "none") {
-        this.selection.innerHTML = `<div class="label">Sin selección</div>`;
-        this.renderedSelectionKey = "none";
+      const kind = state.selectedKind;
+      const def = TOWERS[kind];
+      const stats = towerStats(kind, 1);
+      const damageLevel = this.game.progress.upgrades[`damage:${kind}`] ?? 0;
+      const fireRateLevel = this.game.progress.upgrades[`fireRate:${kind}`] ?? 0;
+      const selectionKey = `preview:${kind}:${damageLevel}:${fireRateLevel}`;
+      if (this.renderedSelectionKey !== selectionKey) {
+        const combatStats = kind === "frost"
+          ? `<div class="row"><span>Ralentización</span><span>${Math.round((1 - (stats.slowFactor ?? 0.5)) * 100)}%</span></div><div class="hint">Esta torre no tiene mejoras permanentes de daño o cadencia.</div>`
+          : `<div class="row"><span>Daño base / mejorado</span><span>${formatStat(stats.damage)} → ${formatStat(stats.damage * upgradeMultiplier(damageLevel))}</span></div>
+             <div class="row"><span>Cadencia base / mejorada</span><span>${formatStat(stats.fireRate)} → ${formatStat(stats.fireRate * upgradeMultiplier(fireRateLevel))}/s</span></div>`;
+        this.selection.innerHTML = `
+          <div class="label">${SYMBOLS[kind]} ${def.name} · Vista previa</div>
+          ${combatStats}
+          <div class="row"><span>Alcance</span><span>${Math.round(stats.range)}</span></div>
+          <div class="hint">Valores de la torre nueva; las mejoras permanentes ya están incluidas en la segunda cifra.</div>
+        `;
+        this.renderedSelectionKey = selectionKey;
       }
       return;
     }
 
     const def = TOWERS[tower.kind];
     const stats = def.levels[tower.level - 1];
+    const damageLevel = this.game.progress.upgrades[`damage:${tower.kind}`] ?? 0;
+    const fireRateLevel = this.game.progress.upgrades[`fireRate:${tower.kind}`] ?? 0;
     const nextCost = upgradeCost(tower.kind, tower.level);
     const sold = sellValue(tower.invested);
-    const selectionKey = `${tower.id}:${tower.level}:${tower.invested}`;
+    const selectionKey = `${tower.id}:${tower.level}:${tower.invested}:${damageLevel}:${fireRateLevel}`;
 
     // Rebuild only when the selected tower or its level changes, not on every
     // animation frame. Otherwise the upgrade button is continuously detached
@@ -245,8 +276,8 @@ export class Hud {
 
       const combatStats = tower.kind === "frost"
         ? `<div class="row"><span>Ralentización</span><span>${Math.round((1 - (stats.slowFactor ?? 0.5)) * 100)}%</span></div>`
-        : `<div class="row"><span>Daño</span><span>${stats.damage}</span></div>
-           <div class="row"><span>Cadencia</span><span>${stats.fireRate}/s</span></div>`;
+        : `<div class="row"><span>Daño base / mejorado</span><span>${formatStat(stats.damage)} → ${formatStat(stats.damage * upgradeMultiplier(damageLevel))}</span></div>
+           <div class="row"><span>Cadencia base / mejorada</span><span>${formatStat(stats.fireRate)} → ${formatStat(stats.fireRate * upgradeMultiplier(fireRateLevel))}/s</span></div>`;
       this.selection.innerHTML = `
         <div class="label">${SYMBOLS[tower.kind]} ${def.name} · Nivel ${tower.level}</div>
         ${combatStats}
