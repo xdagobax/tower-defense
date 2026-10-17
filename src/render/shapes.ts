@@ -1,4 +1,4 @@
-export type ShapeName = "triangle" | "square" | "circle" | "diamond" | "hexagon";
+export type ShapeName = "triangle" | "square" | "circle" | "diamond" | "hexagon" | "pentagon";
 
 export function polygonPath(
   ctx: CanvasRenderingContext2D,
@@ -43,6 +43,9 @@ export function traceShape(
       break;
     case "hexagon":
       polygonPath(ctx, cx, cy, radius * 1.1, 6);
+      break;
+    case "pentagon":
+      polygonPath(ctx, cx, cy, radius * 1.15, 5);
       break;
   }
 }
