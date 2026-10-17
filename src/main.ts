@@ -59,6 +59,9 @@ const hud = new Hud(game, {
     if (game.state.selectedTowerId !== null) game.sellTower(game.state.selectedTowerId);
     persistGame(game);
   },
+  onOverload() {
+    game.activateOverload();
+  },
 });
 
 attachInput(canvas, game, renderer, () => persistGame(game));
