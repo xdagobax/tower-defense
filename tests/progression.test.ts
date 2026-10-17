@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Game } from "../src/game";
 import {
   awardExperience, canPurchaseUpgrade, createPermanentProgress, experienceForKill,
   experienceForWave, levelDifficultyMultiplier, levelTargetWave, purchaseUpgrade,
@@ -77,6 +78,14 @@ describe("permanent progression rules", () => {
     expect(purchaseUpgrade(progress, "damage:arrow")).toBe(true);
     expect(progress.upgrades["damage:arrow"]).toBe(11);
     expect(upgradeMultiplier(progress.upgrades["damage:arrow"] ?? 0)).toBe(1.35);
+  });
+  it("allows the game to purchase permanent upgrades after level ten", () => {
+    const game = new Game();
+    game.progress.experience = 100_000;
+    game.progress.upgrades["damage:arrow"] = 10;
+    expect(game.purchasePermanentUpgrade("damage:arrow")).toBe(true);
+    expect(game.progress.upgrades["damage:arrow"]).toBe(11);
+    expect(upgradeMultiplier(game.progress.upgrades["damage:arrow"] ?? 0)).toBe(1.35);
   });
   it("unlocks the next level only after reaching the current target", () => {
     const progress = createPermanentProgress();
