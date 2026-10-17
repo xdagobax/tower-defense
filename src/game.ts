@@ -76,6 +76,11 @@ export class Game {
   private spawnQueueWave = 1;
   private spawnQueueFinished = false;
   private earlyWindowRemaining = 0;
+  private overloadCharge = 0;
+  private overloadedTowerId: number | null = null;
+  private overloadRemaining = 0;
+  private readonly overloadDuration = 6;
+  private readonly overloadChargeSeconds = 45;
   private readonly wavesAwaitingClear = new Set<number>();
   private nextEnemyId = 1;
   private nextTowerId = 1;
@@ -147,6 +152,10 @@ export class Game {
     const tower = this.towers[idx];
     this.state.gold += sellValue(tower.invested);
     this.towers.splice(idx, 1);
+    if (this.overloadedTowerId === id) {
+      this.overloadedTowerId = null;
+      this.overloadRemaining = 0;
+    }
     if (this.state.selectedTowerId === id) this.state.selectedTowerId = null;
     return true;
   }
@@ -217,6 +226,9 @@ export class Game {
     this.spawnQueueWave = 1;
     this.spawnQueueFinished = false;
     this.earlyWindowRemaining = 0;
+    this.overloadCharge = 0;
+    this.overloadedTowerId = null;
+    this.overloadRemaining = 0;
     this.wavesAwaitingClear.clear();
     this.nextEnemyId = 1;
     this.nextTowerId = 1;
@@ -238,6 +250,31 @@ export class Game {
     if (target < 1 || target > this.progress.highestUnlockedLevel) return false;
     this.level = target;
     this.restart();
+    return true;
+  }
+
+  get overloadChargeRatio(): number {
+    return this.overloadCharge;
+  }
+
+  get activeOverloadTowerId(): number | null {
+    return this.overloadedTowerId;
+  }
+
+  get overloadTimeRemaining(): number {
+    return this.overloadRemaining;
+  }
+
+  activateOverload(): boolean {
+    const towerId = this.state.selectedTowerId;
+    if (towerId === null || this.overloadCharge < 1 || this.overloadedTowerId !== null) return false;
+    if (this.state.phase === "gameover" || this.state.phase === "victory") return false;
+    const tower = this.towers.find((item) => item.id === towerId);
+    if (!tower) return false;
+    this.overloadCharge = 0;
+    this.overloadedTowerId = towerId;
+    this.overloadRemaining = this.overloadDuration;
+    this.announce(`¡Sobrecarga activada! ${TOWERS[tower.kind].name} potenciada durante 6 segundos`);
     return true;
   }
 
@@ -277,6 +314,14 @@ export class Game {
 
     const sdt = dt * this.state.speed;
     this.earlyWindowRemaining = Math.max(0, this.earlyWindowRemaining - sdt);
+    if (this.overloadedTowerId !== null) {
+      this.overloadRemaining = Math.max(0, this.overloadRemaining - sdt);
+      if (this.overloadRemaining === 0 || !this.towers.some((tower) => tower.id === this.overloadedTowerId)) {
+        this.overloadedTowerId = null;
+      }
+    } else {
+      this.overloadCharge = Math.min(1, this.overloadCharge + sdt / this.overloadChargeSeconds);
+    }
     this.updateSpawning(sdt);
     this.updateEnemies(sdt);
     this.updateTowers(sdt);
@@ -323,7 +368,11 @@ export class Game {
   private updateTowers(dt: number): void {
     for (const tower of this.towers) {
       tower.cooldown -= dt;
-      const stats = this.effectiveTowerStats(tower.kind, tower.level);
+      const baseStats = this.effectiveTowerStats(tower.kind, tower.level);
+      const overloaded = this.overloadedTowerId === tower.id && this.overloadRemaining > 0;
+      const stats = overloaded
+        ? { ...baseStats, damage: baseStats.damage * 3, fireRate: baseStats.fireRate * 2, slowFactor: tower.kind === "frost" ? 0.2 : baseStats.slowFactor }
+        : baseStats;
       if (tower.kind === "frost") {
         applyFrostAura(
           this.enemies,
