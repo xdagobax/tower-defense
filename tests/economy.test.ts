@@ -18,6 +18,15 @@ describe("economy", () => {
     expect(buildCost("arrow")).toBe(TOWERS.arrow.buildCost);
   });
 
+  it("Asedio cuesta mucho, tiene poco alcance y una cadencia muy lenta", () => {
+    const siege = TOWERS.siege;
+    expect(siege.buildCost).toBe(300);
+    expect(siege.unlockWave).toBe(8);
+    expect(siege.levels[0].range).toBeLessThan(TOWERS.cannon.levels[0].range);
+    expect(siege.levels[0].damage).toBeGreaterThan(TOWERS.sniper.levels[0].damage * 5);
+    expect(siege.levels[0].fireRate).toBeLessThan(TOWERS.cannon.levels[0].fireRate);
+  });
+
   it("el coste de mejora encadena por nivel y se detiene al máximo", () => {
     const first = upgradeCost("arrow", 1);
     const second = upgradeCost("arrow", 2);
