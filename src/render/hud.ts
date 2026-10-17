@@ -29,6 +29,7 @@ export interface HudHandlers {
   onPurchaseUpgrade(id: UpgradeId): void;
   onUpgrade(): void;
   onSell(): void;
+  onOverload(): void;
 }
 
 function must<T extends HTMLElement>(id: string): T {
@@ -259,20 +260,34 @@ export class Hud {
       upgradeBtn.textContent = upgradeLine;
       upgradeBtn.addEventListener("click", () => this.handlers.onUpgrade());
 
+      const overloadBtn = document.createElement("button");
+      overloadBtn.dataset.action = "overload";
+      overloadBtn.addEventListener("click", () => this.handlers.onOverload());
+
       const sellBtn = document.createElement("button");
       sellBtn.dataset.action = "sell";
       sellBtn.addEventListener("click", () => this.handlers.onSell());
 
-      actions.append(upgradeBtn, sellBtn);
+      actions.append(upgradeBtn, overloadBtn, sellBtn);
       this.renderedSelectionKey = selectionKey;
     }
 
     const upgradeBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="upgrade"]');
     const sellBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="sell"]');
+    const overloadBtn = this.selection.querySelector<HTMLButtonElement>('[data-action="overload"]');
     if (upgradeBtn) {
       upgradeBtn.disabled =
         tower.level >= MAX_TOWER_LEVEL || !canAfford(state.gold, nextCost ?? Infinity);
     }
     if (sellBtn) sellBtn.textContent = `Vender ${sold}`;
+    if (overloadBtn) {
+      const active = this.game.activeOverloadTowerId === tower.id;
+      const anotherActive = this.game.activeOverloadTowerId !== null && !active;
+      overloadBtn.textContent = active
+        ? `Sobrecarga activa · ${this.game.overloadTimeRemaining.toFixed(1)} s`
+        : `Sobrecarga · ${Math.floor(this.game.overloadChargeRatio * 100)}%`;
+      overloadBtn.disabled = active || anotherActive || this.game.overloadChargeRatio < 1 || state.phase === "gameover" || state.phase === "victory";
+      overloadBtn.title = "Triplica el daño y duplica la cadencia durante 6 segundos. Escarcha ralentiza más.";
+    }
   }
 }
