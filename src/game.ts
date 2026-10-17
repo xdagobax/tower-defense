@@ -292,7 +292,7 @@ export class Game {
   }
 
   purchasePermanentUpgrade(id: UpgradeId): boolean {
-    if ((this.progress.upgrades[id] ?? 0) >= 10 || !canPurchaseUpgrade(this.progress, id)) return false;
+    if (!canPurchaseUpgrade(this.progress, id)) return false;
     const bought = purchaseUpgrade(this.progress, id);
     if (bought) this.progressRevision++;
     return bought;
