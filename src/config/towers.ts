@@ -1,6 +1,6 @@
-export type TowerKind = "arrow" | "cannon" | "frost" | "sniper" | "tesla";
+export type TowerKind = "arrow" | "cannon" | "frost" | "sniper" | "tesla" | "siege";
 
-export type TowerShape = "triangle" | "square" | "circle" | "diamond" | "hexagon";
+export type TowerShape = "triangle" | "square" | "circle" | "diamond" | "hexagon" | "pentagon";
 
 export interface TowerStats {
   damage: number;
@@ -83,6 +83,20 @@ export const TOWERS: Record<TowerKind, TowerDef> = {
       { damage: 160, range: 320, fireRate: 0.6, projectileSpeed: 820 },
     ],
   },
+  siege: {
+    kind: "siege",
+    name: "Asedio",
+    shape: "pentagon",
+    description: "Artillería pesada: daño devastador, alcance corto y recarga muy lenta.",
+    buildCost: 300,
+    upgradeCosts: [220, 400],
+    unlockWave: 8,
+    levels: [
+      { damage: 420, range: 65, fireRate: 0.12, projectileSpeed: 150 },
+      { damage: 620, range: 70, fireRate: 0.14, projectileSpeed: 165 },
+      { damage: 900, range: 75, fireRate: 0.16, projectileSpeed: 180 },
+    ],
+  },
   tesla: {
     kind: "tesla",
     name: "Tesla",
@@ -99,7 +113,7 @@ export const TOWERS: Record<TowerKind, TowerDef> = {
   },
 };
 
-export const TOWER_ORDER: TowerKind[] = ["arrow", "cannon", "frost", "sniper", "tesla"];
+export const TOWER_ORDER: TowerKind[] = ["arrow", "cannon", "frost", "sniper", "tesla", "siege"];
 
 export function towerStats(kind: TowerKind, level: number): TowerStats {
   const def = TOWERS[kind];
