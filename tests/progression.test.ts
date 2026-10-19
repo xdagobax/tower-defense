@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Game } from "../src/game";
 import {
   awardExperience, canPurchaseUpgrade, createPermanentProgress, experienceForKill,
-  experienceForWave, levelDifficultyMultiplier, levelTargetWave, purchaseUpgrade,
+  experienceForWave, levelDifficultyMultiplier, levelTargetWave, overloadUpgradeStats, purchaseUpgrade,
   recordWave, upgradeCost, upgradeMultiplier,
 } from "../src/config/progression";
 
@@ -37,6 +37,20 @@ describe("permanent progression rules", () => {
     expect(upgradeCost("damage:arrow", 1)).toBe(150);
     expect(upgradeCost("damage:arrow", 2)).toBe(225);
     expect(upgradeCost("damage:arrow", 3)).toBe(338);
+  });
+  it("makes overload stronger with each permanent upgrade level", () => {
+    expect(overloadUpgradeStats(0)).toEqual({ damageMultiplier: 4, fireRateMultiplier: 2.5, duration: 6 });
+    expect(overloadUpgradeStats(1)).toEqual({ damageMultiplier: 4.5, fireRateMultiplier: 2.75, duration: 7 });
+    expect(overloadUpgradeStats(4)).toEqual({ damageMultiplier: 6, fireRateMultiplier: 3.5, duration: 10 });
+  });
+  it("keeps permanent overload upgrades after restarting a run", () => {
+    const game = new Game();
+    game.progress.experience = 100;
+    expect(game.purchasePermanentUpgrade("overload")).toBe(true);
+    expect(game.progress.upgrades.overload).toBe(1);
+    game.restart();
+    expect(game.progress.upgrades.overload).toBe(1);
+    expect(overloadUpgradeStats(game.progress.upgrades.overload ?? 0).duration).toBe(7);
   });
   it("tracks purchase cost independently per upgrade and weapon", () => {
     const progress = createPermanentProgress();
