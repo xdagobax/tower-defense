@@ -14,7 +14,7 @@ import {
   type Vec,
 } from "./config/map";
 import { MAX_TOWER_LEVEL, TOWERS, towerStats, type TowerKind } from "./config/towers";
-import { awardExperience, canPurchaseUpgrade, createPermanentProgress, experienceForKill, experienceForWave, levelDifficultyMultiplier, purchaseUpgrade, recordWave, upgradeMultiplier, type PermanentProgress, type UpgradeId } from "./config/progression";
+import { awardExperience, canPurchaseUpgrade, createPermanentProgress, experienceForKill, experienceForWave, levelDifficultyMultiplier, overloadUpgradeStats, purchaseUpgrade, recordWave, upgradeMultiplier, type PermanentProgress, type UpgradeId } from "./config/progression";
 import {
   EARLY_WAVE_GOLD_PER_SECOND,
   EARLY_WAVE_WINDOW_SECONDS,
@@ -79,7 +79,7 @@ export class Game {
   private overloadCharge = 0;
   private overloadedTowerId: number | null = null;
   private overloadRemaining = 0;
-  private readonly overloadDuration = 6;
+  private get overloadDuration(): number { return overloadUpgradeStats(this.progress.upgrades.overload ?? 0).duration; }
   private readonly overloadChargeSeconds = 45;
   private overloadChargePurchases = 0;
   private readonly wavesAwaitingClear = new Set<number>();
@@ -301,7 +301,7 @@ export class Game {
     this.overloadCharge = 0;
     this.overloadedTowerId = towerId;
     this.overloadRemaining = this.overloadDuration;
-    this.announce(`¡Sobrecarga activada! ${TOWERS[tower.kind].name} potenciada durante 6 segundos`);
+    this.announce(`¡Sobrecarga activada! ${TOWERS[tower.kind].name} potenciada durante ${this.overloadDuration} segundos`);
     return true;
   }
 
@@ -400,8 +400,9 @@ export class Game {
       tower.cooldown -= dt;
       const baseStats = this.effectiveTowerStats(tower.kind, tower.level);
       const overloaded = this.overloadedTowerId === tower.id && this.overloadRemaining > 0;
+      const overloadStats = overloadUpgradeStats(this.progress.upgrades.overload ?? 0);
       const stats = overloaded
-        ? { ...baseStats, damage: baseStats.damage * 3, fireRate: baseStats.fireRate * 2, slowFactor: tower.kind === "frost" ? 0.2 : baseStats.slowFactor }
+        ? { ...baseStats, damage: baseStats.damage * overloadStats.damageMultiplier, fireRate: baseStats.fireRate * overloadStats.fireRateMultiplier, slowFactor: tower.kind === "frost" ? 0.2 : baseStats.slowFactor }
         : baseStats;
       if (tower.kind === "frost") {
         applyFrostAura(
