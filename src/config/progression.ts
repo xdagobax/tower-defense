@@ -11,7 +11,22 @@ export const UPGRADE_EFFECT_STEP = 0.03;
 export const UPGRADE_SOFT_CAP_LEVEL = 10;
 export const UPGRADE_EFFECT_STEP_AFTER_CAP = 0.05;
 
-export type UpgradeKind = "damage" | "fireRate" | "startingGold" | "killGold";
+export type UpgradeKind = "damage" | "fireRate" | "startingGold" | "killGold" | "overload";
+
+export interface OverloadUpgradeStats {
+  damageMultiplier: number;
+  fireRateMultiplier: number;
+  duration: number;
+}
+
+export function overloadUpgradeStats(level: number): OverloadUpgradeStats {
+  const safeLevel = Math.max(0, Math.floor(level));
+  return {
+    damageMultiplier: 4 + safeLevel * 0.5,
+    fireRateMultiplier: 2.5 + safeLevel * 0.25,
+    duration: 6 + safeLevel,
+  };
+}
 export type UpgradeId = UpgradeKind | `damage:${TowerKind}` | `fireRate:${TowerKind}`;
 
 export interface PermanentProgress {
