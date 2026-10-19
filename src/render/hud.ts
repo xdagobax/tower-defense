@@ -1,7 +1,7 @@
 import { TOWERS, TOWER_ORDER, MAX_TOWER_LEVEL, towerStats, type TowerKind } from "../config/towers";
 import type { Game } from "../game";
 import { buildCost, canAfford, sellValue, upgradeCost } from "../systems/economy";
-import { upgradeCost as permanentUpgradeCost, upgradeMultiplier, type UpgradeId } from "../config/progression";
+import { overloadUpgradeStats, upgradeCost as permanentUpgradeCost, upgradeMultiplier, type UpgradeId } from "../config/progression";
 
 const SYMBOLS: Record<TowerKind, string> = {
   arrow: "▲",
@@ -117,7 +117,7 @@ export class Hud {
   }
 
   private buildPermanentButtons(): void {
-    const ids: UpgradeId[] = ["startingGold", "killGold"];
+    const ids: UpgradeId[] = ["startingGold", "killGold", "overload"];
     for (const kind of TOWER_ORDER) {
       if (kind === "frost") continue;
       ids.push(("damage:" + kind) as UpgradeId, ("fireRate:" + kind) as UpgradeId);
@@ -220,7 +220,13 @@ export class Hud {
       const name = labels[id] ?? ((parts[0] === "damage" ? "Daño" : "Cadencia") + " · " + (TOWERS[parts[1] as TowerKind]?.name ?? parts[1]));
       const cost = permanentUpgradeCost(id, count);
       const effect = upgradePercent(count);
-      btn.textContent = name + ": nivel " + count + " · +" + effect + "% · " + cost + " XP";
+      if (id === "overload") {
+        const stats = overloadUpgradeStats(count);
+        btn.textContent = `Sobrecarga: nivel ${count} · ×${stats.damageMultiplier.toFixed(1)} daño · ×${stats.fireRateMultiplier.toFixed(2)} cadencia · ${stats.duration} s · ${cost} XP`;
+        btn.title = `Siguiente nivel: +0.5× daño, +0.25× cadencia y +1 segundo de duración. Coste: ${cost} XP.`;
+      } else {
+        btn.textContent = name + ": nivel " + count + " · +" + effect + "% · " + cost + " XP";
+      }
       btn.disabled = this.game.progress.experience < cost;
     }
     this.updateSelection();
@@ -345,7 +351,8 @@ export class Hud {
         ? `Sobrecarga activa · ${this.game.overloadTimeRemaining.toFixed(1)} s`
         : `Sobrecarga · ${Math.floor(this.game.overloadChargeRatio * 100)}%`;
       overloadBtn.disabled = active || anotherActive || this.game.overloadChargeRatio < 1 || state.phase === "gameover" || state.phase === "victory";
-      overloadBtn.title = "Triplica el daño y duplica la cadencia durante 6 segundos. Escarcha ralentiza más.";
+      const overloadStats = overloadUpgradeStats(this.game.progress.upgrades.overload ?? 0);
+      overloadBtn.title = `Multiplica el daño ×${overloadStats.damageMultiplier.toFixed(1)} y la cadencia ×${overloadStats.fireRateMultiplier.toFixed(2)} durante ${overloadStats.duration} segundos. Escarcha ralentiza más.`;
     }
   }
 }
